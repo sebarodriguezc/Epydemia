@@ -1,3 +1,6 @@
+from abc import ABC, abstractmethod
+import numpy as np
+
 class SelfObject():
     ''' doctring '''
     def __init__(self, attributes):
@@ -16,12 +19,14 @@ class SelfObject():
         self.attributes[key] = newvalue
 
 
-class Event():
+class Event(ABC):
     ''' docstring '''
+
     def __init__(self, time, simulator):
         self.time = time
         simulator._add_event(self)
 
+    @abstractmethod
     def do(self):
         pass
 
@@ -63,7 +68,7 @@ class Scheduler():
             return None #Raise error?
 
 
-class Simulator():
+class Simulator(ABC):
 
     def __init__(self, events=None):
         ''' events must be an iterable of events '''
@@ -89,3 +94,17 @@ class Simulator():
 
     def _add_event(self, event):
         self.events.add(event)
+
+
+class Stream(np.random.RandomState):
+
+    def __init__(self, seed):
+        super().__init__(seed=seed)
+
+
+if __name__ == '__main__':
+
+
+    sim = Simulator()
+
+    s = Step(0.5, sim, 'A')

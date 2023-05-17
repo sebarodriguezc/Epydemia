@@ -1,7 +1,9 @@
 import igraph as ig
 import numpy as np
+import random
 
 class Network():
+    random.seed(2)
     # Model school and other layers as attributes in edges? or as new graphs?
 
     def __init__(self):
@@ -25,4 +27,7 @@ class Network():
         #random = np.random.random(len(self[layer_name].es)) 
         self[layer_name].es[attr_name] = attrs
 
-    
+    def get_edges(self, layer_name):
+        edge_seq = self[layer_name].es
+        vertex_seq = [[edge.source, edge.target] for edge in edge_seq]
+        return edge_seq, vertex_seq

@@ -40,6 +40,7 @@ class Step(Event):
             print('New day beginning {}'.format(self.time))
         for disease_name, disease in self.simulator.population.diseases.items():
             disease.progression(self.simulator.population)
+            ## Stats collections here
         if self.simulator.verbose:
             susceptible = len(np.where(self.simulator.population['covid']['states'] == 0)[0])
             recovered = len(np.where(self.simulator.population['covid']['states'] == 5)[0])
@@ -54,15 +55,3 @@ class Step(Event):
             self.simulator.H.append(hosp)
             self.simulator.D.append(death)
 
-
-class Intervention(Event):
-    ''' docstring '''
-
-    def __init__(self, time, simulator, func, args):
-        super().__init__(time, simulator)
-        self.model = simulator
-        self.func = func
-        self.args = args
-
-    def do(self):
-        pass

@@ -1,6 +1,6 @@
-from base import SelfObject
-from base import Event
+from base import SelfObject, Event, Stream
 import numpy as np
+from abc import ABC, abstractmethod
 
 class ChangeState(Event):
 
@@ -16,7 +16,8 @@ class ChangeState(Event):
         self.simulator.population[self.disease_name]['states'][self.idx] = self.to_state
         print('Changing state to ', self.to_state)
 
-class Disease(SelfObject):
+
+class Disease(SelfObject, ABC):
     ''' docstring '''
 
     def __init__(self, name, attributes):
@@ -24,7 +25,11 @@ class Disease(SelfObject):
         self.name = name
         super().__init__(attributes)
 
+    @abstractmethod
     def progression(self):
+        pass
+
+    def update_transmission(self, population, edge_seq, vertex_seq):
         pass
 
 
@@ -37,13 +42,30 @@ class SusceptibleToExposed(Event):
         self.population = population
 
     def do(self):
-        susceptibles, probability = self.population.get_suceptible_prob('covid')
+        susceptibles, probability = self.population.get_suceptible_prob(
+            'covid')
         exposed = susceptibles[np.where(
-            np.random.random(len(probability)) <= probability)]
+            Covid.stream.random(len(probability)) <= probability)]
         self.population.change_state(exposed, 'covid', 'exposed')
         for person in exposed:
-            time = 0.5 + np.random.weibull(4.6)
-            ExposedToPresymptomatic(self.simulator.now() + time, self.simulator, self.population, person)
+            time = 0.5 + Covid.stream.weibull(4.6)
+            ExposedToPresymptomatic(self.simulator.now() + time,
+                                    self.simulator, self.population, person)
+
+
+class SusceptibleToRecovered(Event):
+
+    def __init__(self, time, simulator, population):
+        super().__init__(time, simulator)
+        self.time = time
+        self.simulator = simulator
+        self.population = population
+
+    def do(self):
+        pass
+        # Wait 14 days?
+        # Recovered and immunity waining
+
 
 
 class ExposedToPresymptomatic(Event):
@@ -58,10 +80,14 @@ class ExposedToPresymptomatic(Event):
     def do(self):
         time = 0.5
         self.population.change_state(self.idx, 'covid', 'presymptomatic')
-        if np.random.random() < 1/3:
-            PresymptomaticToSymptomatic(self.simulator.now() + time, self.simulator, self.population, self.idx)
+        if Covid.stream.random() < 1/3:
+            PresymptomaticToSymptomatic(self.simulator.now() + time,
+                                        self.simulator, self.population,
+                                        self.idx)
         else:
-            PresymptomaticToAsymptomatic(self.simulator.now() + time, self.simulator, self.population, self.idx)
+            PresymptomaticToAsymptomatic(self.simulator.now() + time,
+                                         self.simulator, self.population,
+                                         self.idx)
 
 
 class PresymptomaticToSymptomatic(Event):
@@ -74,12 +100,16 @@ class PresymptomaticToSymptomatic(Event):
         self.idx = idx
 
     def do(self):
-        time = np.random.exponential(3)
+        time = Covid.stream.exponential(3)
         self.population.change_state(self.idx, 'covid', 'symptomatic')
-        if np.random.random() < 0.03:
-            SymptomaticToHospitalized(self.simulator.now() + time, self.simulator, self.population, self.idx)
+        if Covid.stream.random() < 0.03:
+            SymptomaticToHospitalized(self.simulator.now() + time,
+                                      self.simulator, self.population,
+                                      self.idx)
         else:
-            SymptomaticToRecovered(self.simulator.now() + time, self.simulator, self.population, self.idx)
+            SymptomaticToRecovered(self.simulator.now() + time,
+                                   self.simulator, self.population,
+                                   self.idx)
 
 
 class SymptomaticToHospitalized(Event):
@@ -92,12 +122,14 @@ class SymptomaticToHospitalized(Event):
         self.idx = idx
 
     def do(self):
-        time = np.random.exponential(10.4)
+        time = Covid.stream.exponential(10.4)
         self.population.change_state(self.idx, 'covid', 'hospitalized')
-        if np.random.random() < 0.2:
-            HospitalizedToDeath(self.simulator.now() + time, self.simulator, self.population, self.idx)
+        if Covid.stream.random() < 0.2:
+            HospitalizedToDeath(self.simulator.now() + time, self.simulator,
+                                self.population, self.idx)
         else:
-            HospitalizedToRecovered(self.simulator.now() + time, self.simulator, self.population, self.idx)
+            HospitalizedToRecovered(self.simulator.now() + time,
+                                    self.simulator, self.population, self.idx)
 
 class HospitalizedToRecovered(Event):
 
@@ -110,8 +142,9 @@ class HospitalizedToRecovered(Event):
 
     def do(self):
         self.population.change_state(self.idx, 'covid', 'recovered')
-        time = np.random.exponential(20)
-        RecoveredToSusceptible(self.simulator.now() + time, self.simulator, self.population, self.idx)
+        time = Covid.stream.exponential(20)
+        RecoveredToSusceptible(self.simulator.now() + time, self.simulator,
+                               self.population, self.idx)
 
 
 class HospitalizedToDeath(Event):
@@ -137,7 +170,7 @@ class PresymptomaticToAsymptomatic(Event):
         self.idx = idx
 
     def do(self):
-        time = np.random.exponential(2)
+        time = Covid.stream.exponential(2)
         self.population.change_state(self.idx, 'covid', 'asymptomatic')
         AsymptomaticToRecovered(self.simulator.now() + time, self.simulator, self.population, self.idx)
 
@@ -153,7 +186,7 @@ class SymptomaticToRecovered(Event):
 
     def do(self):
         self.population.change_state(self.idx, 'covid', 'recovered')
-        time = np.random.gamma(25, 10)
+        time = Covid.stream.gamma(25, 10)
         RecoveredToSusceptible(self.simulator.now() + time, self.simulator, self.population, self.idx)
 
 
@@ -168,7 +201,7 @@ class AsymptomaticToRecovered(Event):
 
     def do(self):
         self.population.change_state(self.idx, 'covid', 'recovered')
-        time = np.random.exponential(20)
+        time = Covid.stream.exponential(20)
         RecoveredToSusceptible(self.simulator.now() + time, self.simulator, self.population, self.idx)
 
 class RecoveredToSusceptible(Event):
@@ -196,11 +229,13 @@ class ImportCases(Event):
     def do(self):
         self.population.change_state(self.idx, 'covid', 'symptomatic')
         for person in self.idx:
-            time = np.random.exponential(5)
+            time = Covid.stream.exponential(5)
             SymptomaticToRecovered(self.simulator.now() + time, self.simulator, self.population, person)
 
 
 class Covid(Disease):
+
+    stream = Stream(seed=1)
 
     def __init__(self, simulator, attributes):
         super().__init__('covid', attributes)
@@ -220,3 +255,15 @@ class Covid(Disease):
 
     def progression(self, population):
         SusceptibleToExposed(self.simulator.now(), self.simulator, population)
+
+    def update_transmission(self, population, edge_seq, vertex_seq):
+        def masking_prob(i, j):
+            if i+j == 0:
+                return 1
+            elif i+j == 1:
+                return 0.75
+            else:
+                return 0.2
+        vfunc = np.vectorize(masking_prob)
+        masking_p = vfunc(*population['masking'][vertex_seq].T)
+        return masking_p*self['infection_prob']

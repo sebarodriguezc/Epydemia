@@ -27,43 +27,61 @@ class Population(SelfObject):
         self.diseases[disease.name] = disease
         self[disease.name] = {}
         self[disease.name]['states'] = np.full(self.population_size,
-                                    disease['states']['susceptible'])
+                                               disease['states']['susceptible'])
 
         # For each layer, add probability attribute with name of the disease
         for layer_name in self.network.layers.keys():
-            self.network.add_attributes_edges(layer_name, disease.name, disease['infection_prob'])
+            self.network.add_attributes_edges(layer_name, disease.name, 
+                                              disease['infection_prob'])
 
     def get_suceptible_prob(self, disease_name):
         def calc_prob(probs):
             return 1 - np.product([1-p for p in probs])
-
-        susceptibles = np.where(self[disease_name]['states']  ==
-                                self.diseases[disease_name]['states']['susceptible'])[0]
+        
+        susceptibles = np.where(
+            self[disease_name]['states']  ==
+            self.diseases[disease_name]['states']['susceptible'])[0]
         prob_infection = []
+
         for layer in self.network.layers.keys():
             neighborhoods = self.network[layer].neighborhood(susceptibles)  # check mode, should be undirected graph.
 
             neighborhoods = [
                 [n for n in neighbors if self[disease_name]['states'][n] in
-                self.diseases[disease_name]['contagious_states']]
-                for neighbors in neighborhoods] #This line can be improved for efficiency
+                 self.diseases[disease_name]['contagious_states']]
+                for neighbors in neighborhoods]  # This line can be improved for efficiency
 
             prob_infection.append([
-                calc_prob(self.network[layer].es.select(_source=person,
-                                                        _target=neighbors)[disease_name])
+                calc_prob(self.network[layer].es.select(
+                 _source=person, _target=neighbors)[disease_name])
                 for person, neighbors in zip(susceptibles, neighborhoods)])
+        
         prob_infection = list(map(calc_prob, zip(*prob_infection)))
         return susceptibles, prob_infection
 
     def get_state(self, disease_name, state_name):
-        return np.where(self[disease_name]['states']  ==
-                                self.diseases[disease_name]['states'][state_name])[0]
-
-    #def infect(self, idx, disease_name):
-    #    self[disease_name]['states'][idx] = self.diseases[disease_name]['states']['infected']
+        return np.where(
+            self[disease_name]['states'] ==
+            self.diseases[disease_name]['states'][state_name])[0]
 
     def change_state(self, idx, disease_name, state_name):
         self[disease_name]['states'][idx] = self.diseases[disease_name]['states'][state_name]
 
-    def plot_network(self, ax, layer='main'):
-        ig.plot(self.network[layer], layout=self.network[layer].layout('kk'), target=ax)
+    def plot_network(self, ax, layer, layout='kk'):
+        import igraph as ig
+        ig.plot(self.network[layer], layout=self.network[layer].layout(layout),
+                target=ax)
+
+    def update_transmission_weights(self, disease_names=None, layer_names=None):
+        if isinstance(disease_names, type(None)):
+            disease_names = self.diseases.keys()
+        if isinstance(layer_names, type(None)):
+            layer_names = self.network.layers.keys()
+
+        for layer_name in layer_names:
+            es, vs = self.network.get_edges(layer_name)
+            for disease_name in disease_names:
+                new_p = self.diseases[disease_name].update_transmission(
+                    self, es, vs)
+                self.network.add_attributes_edges(layer_name,
+                                                  disease_name, new_p)
