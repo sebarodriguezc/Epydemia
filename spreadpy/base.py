@@ -32,6 +32,7 @@ class Event(ABC):
 
 
 class Scheduler():
+    # Could inherit from list?
     ''' docstring '''
 
     def __init__(self):
@@ -88,6 +89,7 @@ class Simulator(ABC):
             else:
                 self.sim_time = stop_time
                 break
+        self.events.clear()
 
     def now(self):
         return self.sim_time

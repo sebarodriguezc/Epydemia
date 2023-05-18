@@ -1,4 +1,4 @@
-from base import Event
+from . import Event
 
 class Intervention(Event):
     ''' docstring '''

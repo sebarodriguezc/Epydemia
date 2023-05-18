@@ -1,5 +1,3 @@
-
-
 class StatsCollector(object):
 
     def __init__(self):

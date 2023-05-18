@@ -1,4 +1,4 @@
-from base import SelfObject, Event, Stream
+from . import SelfObject, Event, Stream
 import numpy as np
 from abc import ABC, abstractmethod
 

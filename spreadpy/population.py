@@ -1,7 +1,7 @@
-from base import SelfObject
-from disease import Disease
+from . import SelfObject
+from . import Disease
+from . import Network
 import numpy as np
-from network import Network
 import itertools
 
 class Population(SelfObject):
@@ -67,10 +67,11 @@ class Population(SelfObject):
     def change_state(self, idx, disease_name, state_name):
         self[disease_name]['states'][idx] = self.diseases[disease_name]['states'][state_name]
 
-    def plot_network(self, ax, layer, layout='kk'):
+    def plot_network(self, ax, layer, **plot_kwargs):
         import igraph as ig
-        ig.plot(self.network[layer], layout=self.network[layer].layout(layout),
-                target=ax)
+        #ig.plot(self.network[layer], layout=self.network[layer].layout(layout),
+        #        target=ax)
+        ig.plot(self.network[layer], target=ax, **plot_kwargs)
 
     def update_transmission_weights(self, disease_names=None, layer_names=None):
         if isinstance(disease_names, type(None)):
