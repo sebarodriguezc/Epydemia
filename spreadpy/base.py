@@ -3,12 +3,13 @@ import numpy as np
 
 class SelfObject():
     ''' doctring '''
-    def __init__(self, attributes):
+    def __init__(self, attributes=None):
         ''' To be written '''
         self.attributes = {}
-        assert isinstance(attributes, dict)
-        for key, value in attributes.items():
-            self.__setitem__(key, value)
+        if not isinstance(attributes, type(None)):
+            assert isinstance(attributes, dict)
+            for key, value in attributes.items():
+                self.__setitem__(key, value)
 
     def __getitem__(self, key):
         ''' To be written '''
@@ -25,6 +26,12 @@ class Event(ABC):
     def __init__(self, time, simulator):
         self.time = time
         simulator._add_event(self)
+
+    def __lt__(self, other):
+        return self.time < other.time
+
+    def __gt__(self, other):
+        return self.time > other.time
 
     @abstractmethod
     def do(self):
@@ -45,7 +52,7 @@ class Scheduler():
             raise TypeError('Not an Event type object')
         i = 0
         while i < self.size():
-            if self.events_list[i].time > event.time:
+            if self.events_list[i] > event:
                 break
             i += 1
         self.events_list.insert(i, event)

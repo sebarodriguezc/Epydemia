@@ -2,6 +2,7 @@ from . import SelfObject, Event, Stream
 import numpy as np
 from abc import ABC, abstractmethod
 
+'''
 class ChangeState(Event):
 
     def __init__(self, time, simulator, population_ids, disease_name, to_state):
@@ -15,7 +16,7 @@ class ChangeState(Event):
     def do(self):
         self.simulator.population[self.disease_name]['states'][self.idx] = self.to_state
         print('Changing state to ', self.to_state)
-
+'''
 
 class Disease(SelfObject, ABC):
     ''' docstring '''
@@ -35,37 +36,36 @@ class Disease(SelfObject, ABC):
 
 class SusceptibleToExposed(Event):
 
-    def __init__(self, time, simulator, population):
+    # TODO: This EVENT might need to change to accept idx and code do() outside.
+
+    def __init__(self, time, simulator, population, idx):
         super().__init__(time, simulator)
         self.time = time
         self.simulator = simulator
         self.population = population
+        self.idx = idx
 
     def do(self):
-        susceptibles, probability = self.population.get_suceptible_prob(
-            'covid')
-        exposed = susceptibles[np.where(
-            Covid.stream.random(len(probability)) <= probability)]
-        self.population.change_state(exposed, 'covid', 'exposed')
-        for person in exposed:
-            time = 0.5 + Covid.stream.weibull(4.6)
-            ExposedToPresymptomatic(self.simulator.now() + time,
-                                    self.simulator, self.population, person)
+        self.population.change_state(self.idx, 'covid', 'exposed')
+        time = 0.5 + Covid.stream.weibull(4.6)
+        ExposedToPresymptomatic(self.simulator.now() + time,
+                                self.simulator, self.population, self.idx)
 
 
 class SusceptibleToRecovered(Event):
 
-    def __init__(self, time, simulator, population):
+    def __init__(self, time, simulator, population, idx):
         super().__init__(time, simulator)
         self.time = time
         self.simulator = simulator
         self.population = population
+        self.idx = idx
 
     def do(self):
-        pass
-        # Wait 14 days?
-        # Recovered and immunity waining
-
+        time = Covid.stream.gamma(25, 10)
+        self.population.change_state(self.idx, 'covid', 'recovered')
+        RecoveredToSusceptible(self.simulator.now() + time, self.simulator,
+                               self.population, self.idx)
 
 
 class ExposedToPresymptomatic(Event):
@@ -236,6 +236,7 @@ class ImportCases(Event):
 class Covid(Disease):
 
     stream = Stream(seed=1)
+    # TODO: #6 states could be a class attribute instead of object
 
     def __init__(self, simulator, attributes):
         super().__init__('covid', attributes)
@@ -247,16 +248,25 @@ class Covid(Disease):
                           'recovered': 5,
                           'hospitalized': 6,
                           'death': 7}
-        self['contagious_states'] = [self['states']['presymptomatic'], 
+        self['contagious_states'] = [self['states']['presymptomatic'],
                                      self['states']['symptomatic'],
                                      self['states']['asymptomatic']]
         self['infection_prob'] = attributes['infection_prob']
         self.simulator = simulator
 
     def progression(self, population):
-        SusceptibleToExposed(self.simulator.now(), self.simulator, population)
+        susceptibles, probability = population.get_suceptible_prob(
+            'covid')
+        exposed = susceptibles[np.where(
+            Covid.stream.random(len(probability)) <= probability)]
+        for person in exposed:
+            SusceptibleToExposed(self.simulator.now(), self.simulator, population, person)
 
     def update_transmission(self, population, edge_seq, vertex_seq):
+        '''
+        Update transmission considers all interventions ?
+        '''
+        # TODO: #1 determine which factors affect transmission (masking, quarantine, vaccination)
         def masking_prob(i, j):
             if i+j == 0:
                 return 1

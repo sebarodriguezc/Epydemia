@@ -34,7 +34,7 @@ class Network():
     def add_random_layer(self, n, p, layer_name):
         self[layer_name] = ig.Graph.Erdos_Renyi(n=n, p=p)
         #self[layer_name].vs["id"] = list(range(n)) # Not sure if this is needed, igraph renumbers when deleting a vertex
-    
+
     def add_attributes_edges(self, layer_name, attr_name, attrs):
         self[layer_name].es[attr_name] = attrs
 
@@ -43,7 +43,7 @@ class Network():
         edge_seq = self[layer_name].es
         vertex_seq = [[edge.source, edge.target] for edge in edge_seq]
         return edge_seq, vertex_seq
-    
+
 
 class Layer():
 
