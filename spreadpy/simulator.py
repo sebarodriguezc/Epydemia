@@ -43,10 +43,13 @@ class AgentBasedSim(Simulator):
             disease = Covid(self, *disease_args, **disease_kwargs)
         self.population.introduce_disease(disease)
 
-    def add_layer(self, how='random', **kwargs):
+    def add_layer(self, layer_name, how='random', **kwargs):
+        ''' should be given the option to give the vertices' id to do a new layer'''
+        if 'n' not in kwargs:
+            kwargs['n'] = self.population.population_size
         if how == 'random':
-            self.population.create_random_contact_layer(**kwargs)
-
+            self.population.network.add_layer(layer_name=layer_name, how=how, **kwargs)
+            
 
 class Step(Event):
     ''' Disease progression '''
@@ -64,7 +67,8 @@ class Step(Event):
             disease.progression(self.simulator.population)
             # Stats collections here
         for i, name in zip(range(8), ['S', 'E', 'P', 'Sy', 'A', 'R', 'H', 'D']):
-            stat = len(np.where(self.simulator.population['covid']['states'] == i)[0])
+            stat = len(
+                np.where(self.simulator.population['covid']['states'] == i)[0])
             self.simulator.collector.collect(name, stat)
 
     @classmethod

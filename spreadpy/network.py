@@ -4,12 +4,10 @@ import random
 
 class Network():
     random.seed(42)
-    # Model school and other layers as attributes in edges? or as new graphs?
 
     def __init__(self):
         self.layers = dict()
         self.layers_names = []
-        self.active_layers = []
 
     def __getitem__(self, key):
         ''' To be written '''
@@ -17,37 +15,45 @@ class Network():
 
     def __setitem__(self, layer_name, new_layer):
         ''' To be written '''
+        assert(isinstance(new_layer, Layer))
         self.layers[layer_name] = new_layer
         self.layers_names.append(layer_name)
-        self.active_layers.append(layer_name)
+
+    def add_layer(self, layer_name, how='random', **kwargs):
+        if how == 'random':
+            self[layer_name] = Layer(name=layer_name,
+                                     graph=ig.Graph.Erdos_Renyi(**kwargs))
 
     def activate_layer(self, layer_name):
         assert(layer_name in self.layers_names)
-        if layer_name not in self.activate_layer:
-            self.active_layers.append(layer_name)
+        self.layers[layer_name].active = True
 
     def deactivate_layer(self, layer_name):
         assert(layer_name in self.layers_names)
-        if layer_name not in self.activate_layer:
-            self.active_layers.remove(layer_name)
+        self.layers[layer_name].active = False
 
-    def add_random_layer(self, n, p, layer_name):
-        self[layer_name] = ig.Graph.Erdos_Renyi(n=n, p=p)
-        #self[layer_name].vs["id"] = list(range(n)) # Not sure if this is needed, igraph renumbers when deleting a vertex
+    def get_active_layers(self):
+        return [layer for key, layer in self.layers.items() if layer.active]
 
-    def add_attributes_edges(self, layer_name, attr_name, attrs):
-        self[layer_name].es[attr_name] = attrs
+    def add_attributes_edges(self, layer_name, attr_name, attrs, edge_seq=None):
+        if isinstance(edge_seq, type(None)):
+            self[layer_name].graph.es[attr_name] = attrs
+        else:
+            self[layer_name].graph.es.select(edge_seq)[attr_name] = attrs
 
-    def get_edges(self, layer_name):
-        # This must be modified to accept getting the edges of a subset of vertices
-        edge_seq = self[layer_name].es
+    def get_edges(self, layer_name, target_vertex_seq=None):
+        if isinstance(target_vertex_seq, type(None)):
+            edge_seq = self[layer_name].graph.es
+        else:
+            edge_seq = self[layer_name].graph.es.select(
+                _source=target_vertex_seq)
         vertex_seq = [[edge.source, edge.target] for edge in edge_seq]
         return edge_seq, vertex_seq
 
 
 class Layer():
 
-    def __init__(self, name):
-        pass
-
-    def
+    def __init__(self, name, graph):
+        self.name = name
+        self.active = True
+        self.graph = graph

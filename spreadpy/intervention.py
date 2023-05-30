@@ -17,8 +17,8 @@ class Intervention(Event):
 
 class Masking(Intervention):
     '''docstring'''
-    MASKING_STATES = {'no masking':0,
-                      'masking':1}
+    MASKING_STATES = {'no masking': 0,
+                      'masking': 1}
 
     def do(self):
         if self.simulator.verbose:
@@ -34,7 +34,7 @@ class Quarantine(Intervention):
     def do(self):
         self.simulator.population['quarantine'] = self.func(self.args)
         # or self.model.population['masking'] = self.func(self.args)
-        self.simulator.population.network.update_transmission_weights()
+        self.simulator.population.update_transmission_weights()
 
 
 class Vaccination(Intervention):
@@ -62,7 +62,7 @@ class Vaccination(Intervention):
              self.simulator.population.diseases[
                  self.disease_name]['states']['susceptible']) &
             (self.simulator.population[self.disease_name]['vaccine'] == Vaccination.VACCINE_STATES['not vaccinated']))[0]
-        
+
         target_idx = target_idx[np.isin(target_idx, idx, assume_unique=True)]
         self.simulator.population[
             self.disease_name]['vaccine'][target_idx] = Vaccination.VACCINE_STATES['vaccinated']

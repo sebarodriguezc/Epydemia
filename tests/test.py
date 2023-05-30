@@ -75,4 +75,8 @@ if __name__ == '__main__':
 ### Assign random weights. Then, prob of contagion is 1 - (1-p1)(1-p2)
 
 
+    # %%
+    sim.population.network.add_attributes_edges('school', 'covid', [0.33, 0.33], [0,1])
+    es = sim.population.network['school'].es[[0,1]]['covid']
+
 # %%
