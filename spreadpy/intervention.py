@@ -2,10 +2,13 @@ from . import Event
 from . import SusceptibleToRecovered
 import numpy as np
 
+# TODO: #14 Simulator must initialize the required attributes 'masking', 'quarantine'
+
 class Intervention(Event):
     ''' docstring '''
 
     def __init__(self, time, simulator, func=None, args=None):
+        # TODO: #13 Rethink how interventions are defined in terms of args
         super().__init__(time, simulator)
         self.simulator = simulator
         self.func = func
@@ -24,16 +27,42 @@ class Masking(Intervention):
         if self.simulator.verbose:
             print('Masking intervention')
         self.simulator.population['masking'] = self.func(self.args)
-        # or self.model.population['masking'] = self.func(self.args)
         self.simulator.population.update_transmission_weights()
 
 
 class Quarantine(Intervention):
     '''docstring'''
 
+    def __init__(self, time, simulator, idx, length=5):
+        # TODO: #13 Rethink how interventions are defined in terms of args
+        super().__init__(time, simulator)
+        self.simulator = simulator
+        self.idx = idx
+        self.length = length
+
     def do(self):
-        self.simulator.population['quarantine'] = self.func(self.args)
-        # or self.model.population['masking'] = self.func(self.args)
+        try:
+            assert(len(self.simulator.population['quarantine']) ==
+                   self.simulator.population.population_size)
+        except AssertionError:
+            self.simulator.population['quaratine'] = np.zeros(
+                self.simulator.population.population_size)
+        self.simulator.population['quarantine'][self.idx] = 1
+        self.simulator.population.update_transmission_weights()
+        EndQuarantine(self.simulator.now() + self.length, self.simulator,
+                      self.idx)
+
+
+class EndQuarantine(Intervention):
+
+    def __init__(self, time, simulator, idx):
+        # TODO: #13 Rethink how interventions are defined in terms of args
+        super().__init__(time, simulator)
+        self.simulator = simulator
+        self.idx = idx
+
+    def do(self):
+        self.simulator.population['quarantine'][self.idx] = 0
         self.simulator.population.update_transmission_weights()
 
 

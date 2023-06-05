@@ -8,45 +8,45 @@ import matplotlib.pyplot as plt
 import time
 import numpy as np
 
-def vaccinate_age(population, stream, age_target, coverage):
-    idx_ = np.where((population['age'] >= age_target[0]) &
-                    (population['age'] <= age_target[1]))[0]
-    return stream.choice(idx_, size=round(int(len(idx_)*coverage)),
-                         replace=False)
 
 #%%
 if __name__ == '__main__':
     stream = sp.Stream(seed=1023)
+    stream_pop = sp.Stream(seed=10753)
 
     sim = sp.AgentBasedSim()
-    pop_size = 1000
 
     # Initialize model
-    sim.initialize_population(population_size=pop_size, network_seed=1024,
-                              demographics_kwargs={'age_lims': (0, 65)},
-                              demographics='random')
-    # initialize population from census data?
+    pop_size = 200
+    sim.initialize_population(
+        population_size=pop_size,
+        network_seed=1024,
+        pop_attributes={
+            'age': stream_pop.randint(0, 100, size=pop_size),
+            'gender': stream_pop.randint(0, 2, size=pop_size),
+            'race': stream_pop.randint(0, 5+1, size=pop_size)})
 
     # Create layers of network
-    sim.add_layer(layer_name='community', how='random', p=0.005)
-    sim.add_layer(layer_name='school', how='random', p=0.005)
+    sim.add_layer(layer_name='community', how='random', p=0.007)  # p=0.005)
+    sim.add_layer(layer_name='school', how='random', p=0.005)  # p=0.005)
 
     # Define disease
     sim.add_disease('covid', {'infection_prob': 0.15})
 
     # Interventions
-    sim.add_intervention('Masking', 1, func=lambda x: x, args=stream.randint(2, size=pop_size))
-    sim.add_intervention('Masking', 100, func=lambda x: x, args=np.zeros(pop_size))
-    sim.add_intervention('Vaccination', 50, disease_name='covid',
-                         target_func=vaccinate_age, stream=stream,
+    sim.add_intervention('masking', 7, func=lambda x: x,
+                         args=stream.randint(2, size=pop_size))
+    sim.add_intervention('masking', 60, func=lambda x: x,
+                         args=np.zeros(pop_size))
+    sim.add_intervention('vaccination', 50, disease_name='covid',
+                         target_func=sp.vaccinate_age, stream=stream,
                          age_target=(50, 65), coverage=0.6)
-    sim.add_intervention('Vaccination', 55, disease_name='covid',
-                         target_func=vaccinate_age, stream=stream,
+    sim.add_intervention('vaccination', 55, disease_name='covid',
+                         target_func=sp.vaccinate_age, stream=stream,
                          age_target=(50, 65), coverage=0.6)
-
 
     # Run model
-    sim.run(stop_time=100)  # Streams should be set when running the model
+    sim.run(stop_time=10)  # Streams should be set when running the model
 
     #%%
     plt.plot(sim.collector['S'], label='S')
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     plt.plot(sim.collector['D'], label='D')
     plt.legend()
 
-    #%% 
+    #%%
     color_dict = {0: 'white', 1:'orange', 2: 'red', 3:'red', 4:'red',
                 5: 'green', 6:'purple', 7:'k'}
     labels = ['Susceptible', 'Exposed', 'Infected', 'I', 'I',
@@ -65,18 +65,14 @@ if __name__ == '__main__':
     colors = [color_dict[i] for i in sim.population['covid']['states']]
 
     fig, ax = plt.subplots(figsize=(10, 10))
-    sim.population.plot_network(ax, 'community', layout='kk', vertex_color=colors,
-                            vertex_size=0.1)
+    sim.population.plot_network(ax, 'school', layout='kk',
+                                vertex_color=colors, vertex_size=0.5)  # TODO: #15 Plotting function should be part of sim object
     for i in [0, 1, 2, 5, 6]:
         ax.scatter([], [], s=100, c=color_dict[i], edgecolor='gray',
                    label=labels[i])
-    plt.legend(fontsize=16, loc='upper right')
+    plt.legend(fontsize=12, loc='best')
 
-### Assign random weights. Then, prob of contagion is 1 - (1-p1)(1-p2)
+    # Assign random weights. Then, prob of contagion is 1 - (1-p1)(1-p2)
 
-
-    # %%
-    sim.population.network.add_attributes_edges('school', 'covid', [0.33, 0.33], [0,1])
-    es = sim.population.network['school'].es[[0,1]]['covid']
 
 # %%

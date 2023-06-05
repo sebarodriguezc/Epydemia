@@ -230,7 +230,8 @@ class ImportCases(Event):
         self.population.change_state(self.idx, 'covid', 'symptomatic')
         for person in self.idx:
             time = Covid.stream.exponential(5)
-            SymptomaticToRecovered(self.simulator.now() + time, self.simulator, self.population, person)
+            SymptomaticToRecovered(self.simulator.now() + time, self.simulator,
+                                   self.population, person)
 
 
 class Covid(Disease):

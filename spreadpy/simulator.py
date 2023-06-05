@@ -14,7 +14,6 @@ class AgentBasedSim(Simulator):
         super().__init__(events)
         self.population = None
         self.verbose = True
-        self.S, self.E, self.I, self.R, self.H, self.D = [], [], [], [], [], []
 
     def run(self, stop_time, verbose=True, seeds=(1024,)):
         self.verbose = verbose
@@ -24,18 +23,28 @@ class AgentBasedSim(Simulator):
         Step.initialize(self, stop_time)
         super().run(stop_time)
 
-    def initialize_population(self, population_size=100, avg_contacts_per_day=20,
-                   network_seed=2048, **kwargs):
+    def initialize_population(self, population_size=100,
+                              avg_contacts_per_day=20,
+                              network_seed=2048,
+                              pop_attributes=None,
+                              filename=None,
+                              **kwargs):
         # where to alocate avg_contacts_per_day population or sim.
         random.seed(network_seed)  # igraph seed
-        self.population = Population(population_size, **kwargs)
-        ImportCases(0, self, self.population, [0, 2, 10, 15, 30])
+        if not isinstance(filename, type(None)):
+            pass  # TODO: #11 implement reading from file
+        else:
+            self.population = Population(population_size)
+            if isinstance(pop_attributes, dict):
+                for key, value in pop_attributes.items():
+                    self.population.add_attribute(key, value)
+        ImportCases(0, self, self.population, [0, 2, 10, 15, 30])  # TODO: #12 implement how to import cases
 
     def add_intervention(self, intervention_type, time, **intervention_kwargs):
         # TODO: #5 can have a list of interventions instead of if statements
-        if intervention_type == 'Masking':
+        if intervention_type == 'masking':
             Masking(time, self, **intervention_kwargs)
-        elif intervention_type == 'Vaccination':
+        elif intervention_type == 'vaccination':
             Vaccination(time, self, **intervention_kwargs)
 
     def add_disease(self, disease_type, *disease_args, **disease_kwargs):
@@ -66,12 +75,13 @@ class Step(Event):
         for _, disease in self.simulator.population.diseases.items():
             disease.progression(self.simulator.population)
             # Stats collections here
-        for i, name in zip(range(8), ['S', 'E', 'P', 'Sy', 'A', 'R', 'H', 'D']):
+        for i, name in zip(range(8),
+                           ['S', 'E', 'P', 'Sy', 'A', 'R', 'H', 'D']):
             stat = len(
                 np.where(self.simulator.population['covid']['states'] == i)[0])
             self.simulator.collector.collect(name, stat)
 
     @classmethod
     def initialize(cls, simulator, stop_time):
-        for t in np.arange(0, int(stop_time)+1, Step.STEP_SIZE):    ## add the below to a initialize function ?????
+        for t in np.arange(0, int(stop_time)+1, Step.STEP_SIZE):    # add the below to a initialize function ?????
             Step(t, simulator)

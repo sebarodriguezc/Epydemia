@@ -11,27 +11,28 @@ class Population(SelfObject):
     # Possible create vertices first and then create contact layers?
     # Network main or not will depend if there are different contact layers or not
 
-    def __init__(self, population_size, demographics='random',
-                 demographics_kwargs={}):
+    def __init__(self, population_size):
         ''' To be written '''
         # TODO: #7 implemente ability to initialize from file.
         super().__init__(attributes=dict())
         self.network = Network()
         self.population_size = population_size
         self.diseases = {}
-        if demographics == 'random':
-            self.random_demographics(**demographics_kwargs)
+        self._init_characteristics()
 
-    def random_demographics(self, age_lims=(0, 100), n_races=6,
-                            stream=Stream(seed=2543)):
-        self['age'] = stream.randint(age_lims[0], age_lims[1]+1,
-                                     size=self.population_size)
-        self['gender'] = stream.randint(0, 2, size=self.population_size)
-        self['race'] = stream.randint(0, n_races+1)
+    def _init_characteristics(self):
+        self['masking'] = np.zeros(self.population_size)
+        self['quarantine'] = np.zeros(self.population_size)
+    
+    def add_attribute(self, attribute_name, values):
+        self[attribute_name] = values
 
     def introduce_disease(self, disease, states_seed=None, vaccine_seed=None):
         '''Must be called when population has been created'''
-        assert issubclass(type(disease), Disease)
+        try:
+            assert issubclass(type(disease), Disease)
+        except AssertionError:
+            raise ValueError('Must be a Disease object')
         self.diseases[disease.name] = disease
         self[disease.name] = {}
 
