@@ -75,16 +75,19 @@ class Scheduler():
         except Exception:
             return None #Raise error?
 
+    def sort(self):
+        self.events_list.sort()
+
+    def find(self, condition):
+        assert(callable(condition))
+        return [e for e in self.events_list if condition(e)]
+
 
 class Simulator(ABC):
 
-    def __init__(self, events=None):
+    def __init__(self):
         ''' events must be an iterable of events '''
-
         self.events = Scheduler()
-        if not isinstance(events, type(None)):
-            for e in events:
-                self._add_event(e)
 
     def run(self, stop_time=float('inf')):
 
@@ -104,6 +107,9 @@ class Simulator(ABC):
     def _add_event(self, event):
         self.events.add(event)
 
+    def cancel_event(self, event):
+        self.events.cancel(event)
+
 
 class Stream(np.random.RandomState):
 
@@ -112,8 +118,24 @@ class Stream(np.random.RandomState):
 
 
 if __name__ == '__main__':
+    
+    class Eventz(Event):
+        idx_counter = 1
 
+        def __init__(self, time, simulator):
+            super().__init__(time, simulator)
+            self.idx = Eventz.idx_counter
+            Eventz.idx_counter += 1
 
+        def do(self):
+            print('Hello {}'.format(self.time))
+            
+    
     sim = Simulator()
+    e1 = Eventz(1, sim)
+    e2 = Eventz(5, sim)
+    e3 = Eventz(6, sim)
+    e1.time = 5.5
+    sim.events.sort()
 
-    s = Step(0.5, sim, 'A')
+    print([e.time for e in sim.events.events_list])

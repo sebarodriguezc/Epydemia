@@ -2,6 +2,22 @@ from . import SelfObject, Event, Stream
 import numpy as np
 from abc import ABC, abstractmethod
 
+class Disease(SelfObject, ABC):
+    ''' docstring '''
+
+    def __init__(self, name, attributes):
+        # states
+        self.name = name
+        super().__init__(attributes)
+
+    @abstractmethod
+    def progression(self):
+        pass
+
+    def update_transmission(self, population, edge_seq, vertex_seq):
+        pass
+
+
 '''
 class ChangeState(Event):
 
@@ -17,21 +33,6 @@ class ChangeState(Event):
         self.simulator.population[self.disease_name]['states'][self.idx] = self.to_state
         print('Changing state to ', self.to_state)
 '''
-
-class Disease(SelfObject, ABC):
-    ''' docstring '''
-
-    def __init__(self, name, attributes):
-        # states
-        self.name = name
-        super().__init__(attributes)
-
-    @abstractmethod
-    def progression(self):
-        pass
-
-    def update_transmission(self, population, edge_seq, vertex_seq):
-        pass
 
 
 class SusceptibleToExposed(Event):
@@ -172,7 +173,8 @@ class PresymptomaticToAsymptomatic(Event):
     def do(self):
         time = Covid.stream.exponential(2)
         self.population.change_state(self.idx, 'covid', 'asymptomatic')
-        AsymptomaticToRecovered(self.simulator.now() + time, self.simulator, self.population, self.idx)
+        AsymptomaticToRecovered(self.simulator.now() + time, self.simulator,
+                                self.population, self.idx)
 
 
 class SymptomaticToRecovered(Event):
@@ -187,7 +189,8 @@ class SymptomaticToRecovered(Event):
     def do(self):
         self.population.change_state(self.idx, 'covid', 'recovered')
         time = Covid.stream.gamma(25, 10)
-        RecoveredToSusceptible(self.simulator.now() + time, self.simulator, self.population, self.idx)
+        RecoveredToSusceptible(self.simulator.now() + time, self.simulator,
+                               self.population, self.idx)
 
 
 class AsymptomaticToRecovered(Event):
@@ -202,7 +205,8 @@ class AsymptomaticToRecovered(Event):
     def do(self):
         self.population.change_state(self.idx, 'covid', 'recovered')
         time = Covid.stream.exponential(20)
-        RecoveredToSusceptible(self.simulator.now() + time, self.simulator, self.population, self.idx)
+        RecoveredToSusceptible(self.simulator.now() + time, self.simulator,
+                               self.population, self.idx)
 
 class RecoveredToSusceptible(Event):
 
@@ -261,7 +265,8 @@ class Covid(Disease):
         exposed = susceptibles[np.where(
             Covid.stream.random(len(probability)) <= probability)]
         for person in exposed:
-            SusceptibleToExposed(self.simulator.now(), self.simulator, population, person)
+            SusceptibleToExposed(self.simulator.now(), self.simulator,
+                                 population, person)
 
     def update_transmission(self, population, edge_seq, vertex_seq):
         '''

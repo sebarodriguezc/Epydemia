@@ -11,29 +11,26 @@ import numpy as np
 
 #%%
 if __name__ == '__main__':
-    stream = sp.Stream(seed=1023)
-    stream_pop = sp.Stream(seed=10753)
-
     sim = sp.AgentBasedSim()
 
     # Initialize model
     pop_size = 200
+    stream_pop = sp.Stream(seed=10753)
     sim.initialize_population(
+        how='proportion_file',
         population_size=pop_size,
         network_seed=1024,
-        pop_attributes={
-            'age': stream_pop.randint(0, 100, size=pop_size),
-            'gender': stream_pop.randint(0, 2, size=pop_size),
-            'race': stream_pop.randint(0, 5+1, size=pop_size)})
+        filename='../data/population.csv')
 
     # Create layers of network
-    sim.add_layer(layer_name='community', how='random', p=0.007)  # p=0.005)
-    sim.add_layer(layer_name='school', how='random', p=0.005)  # p=0.005)
+    sim.add_layer(layer_name='community', how='random', p=0.05)  # p=0.005)
+    sim.add_layer(layer_name='school', how='random', p=0.05)  # p=0.005)
 
     # Define disease
     sim.add_disease('covid', {'infection_prob': 0.15})
 
     # Interventions
+    stream = sp.Stream(seed=1023)
     sim.add_intervention('masking', 7, func=lambda x: x,
                          args=stream.randint(2, size=pop_size))
     sim.add_intervention('masking', 60, func=lambda x: x,
@@ -46,12 +43,13 @@ if __name__ == '__main__':
                          age_target=(50, 65), coverage=0.6)
 
     # Run model
-    sim.run(stop_time=10)  # Streams should be set when running the model
+    sim.run(stop_time=200)  # Streams should be set when running the model
 
     #%%
     plt.plot(sim.collector['S'], label='S')
     plt.plot(sim.collector['E'], label='E')
-    plt.plot(sim.collector['Sy']+sim.collector['A']+sim.collector['P'], label='I')
+    plt.plot(sim.collector['Sy']+sim.collector['A']+sim.collector['P'],
+             label='I')
     plt.plot(sim.collector['R'], label='R')
     plt.plot(sim.collector['H'], label='H')
     plt.plot(sim.collector['D'], label='D')

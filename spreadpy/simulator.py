@@ -4,40 +4,61 @@ from . import ImportCases
 from . import Masking, Vaccination
 from . import Covid
 from . import StatsCollector
+from . import from_file_proportion
 import numpy as np
 import random
 
 class AgentBasedSim(Simulator):
     ''' docstring '''
 
-    def __init__(self, events=None):
-        super().__init__(events)
+    def __init__(self):
+        super().__init__()
         self.population = None
         self.verbose = True
 
     def run(self, stop_time, verbose=True, seeds=(1024,)):
         self.verbose = verbose
         self.collector = StatsCollector()
-        disease_stream = Stream(seed=seeds[0])
-        Covid.stream = disease_stream
+        
+        Covid.stream = Stream(seed=seeds[0])
+
         Step.initialize(self, stop_time)
         super().run(stop_time)
 
-    def initialize_population(self, population_size=100,
+    def initialize_population(self, how=None,
+                              population_size=None,
                               avg_contacts_per_day=20,
                               network_seed=2048,
+                              population_seed=3069,
                               pop_attributes=None,
                               filename=None,
                               **kwargs):
+        '''
+        '''
         # where to alocate avg_contacts_per_day population or sim.
         random.seed(network_seed)  # igraph seed
-        if not isinstance(filename, type(None)):
-            pass  # TODO: #11 implement reading from file
-        else:
+        self.stream = Stream(population_seed)
+        if how == 'from_arrays':
+            assert(isinstance(pop_attributes, dict))
+            population_size = len(pop_attributes.items()[0][1])
+            try:
+                for key, val in pop_attributes.items():
+                    assert(len(val) == population_size)
+            except AssertionError:
+                population_size = len(pop_attributes.items()[0][1])
             self.population = Population(population_size)
-            if isinstance(pop_attributes, dict):
-                for key, value in pop_attributes.items():
-                    self.population.add_attribute(key, value)
+            for key, value in pop_attributes.items():
+                self.population.add_attribute(key, value)
+        elif how == 'proportion_file':
+            assert(isinstance(filename, str))
+            assert(isinstance(population_size, int))
+            self.population = Population(population_size)
+            pop_attributes, metadata = from_file_proportion(
+                filename, population_size, self.stream)
+            for key, value in pop_attributes.items():
+                self.population.add_attribute(key, value)
+        elif how == '':
+            pass
         ImportCases(0, self, self.population, [0, 2, 10, 15, 30])  # TODO: #12 implement how to import cases
 
     def add_intervention(self, intervention_type, time, **intervention_kwargs):
@@ -58,7 +79,7 @@ class AgentBasedSim(Simulator):
             kwargs['n'] = self.population.population_size
         if how == 'random':
             self.population.network.add_layer(layer_name=layer_name, how=how, **kwargs)
-            
+
 
 class Step(Event):
     ''' Disease progression '''
@@ -74,7 +95,8 @@ class Step(Event):
             print('New day beginning {}'.format(self.time))
         for _, disease in self.simulator.population.diseases.items():
             disease.progression(self.simulator.population)
-            # Stats collections here
+        
+        # Stats collections here
         for i, name in zip(range(8),
                            ['S', 'E', 'P', 'Sy', 'A', 'R', 'H', 'D']):
             stat = len(
@@ -83,5 +105,5 @@ class Step(Event):
 
     @classmethod
     def initialize(cls, simulator, stop_time):
-        for t in np.arange(0, int(stop_time)+1, Step.STEP_SIZE):    # add the below to a initialize function ?????
+        for t in np.arange(0, int(stop_time)+1, Step.STEP_SIZE): 
             Step(t, simulator)

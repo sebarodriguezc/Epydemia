@@ -2,6 +2,7 @@ from . import SelfObject, Stream
 from . import Disease
 from . import Network
 from . import Vaccination
+from . import dict_to_csv
 import numpy as np
 import itertools
 import igraph as ig
@@ -11,7 +12,7 @@ class Population(SelfObject):
     # Possible create vertices first and then create contact layers?
     # Network main or not will depend if there are different contact layers or not
 
-    def __init__(self, population_size):
+    def __init__(self, population_size, attributes=dict()):
         ''' To be written '''
         # TODO: #7 implemente ability to initialize from file.
         super().__init__(attributes=dict())
@@ -25,6 +26,7 @@ class Population(SelfObject):
         self['quarantine'] = np.zeros(self.population_size)
     
     def add_attribute(self, attribute_name, values):
+        assert(len(values) == self.population_size)
         self[attribute_name] = values
 
     def introduce_disease(self, disease, states_seed=None, vaccine_seed=None):
@@ -103,8 +105,17 @@ class Population(SelfObject):
             es, vs = self.network.get_edges(layer_name)
             for disease_name in disease_names:
                 new_p = self.diseases[disease_name].update_transmission(
-                    self, es, vs) # TODO: #9 edges shouldn't be consider here
+                    self, es, vs)  # TODO: #9 edges shouldn't be consider here
                 self.network.add_attributes_edges(layer_name,
                                                   disease_name, new_p,
                                                   edge_seq=[e.index for e in es])
                 # TODO: #10 The two lines above should be done in one function.
+
+    def to_file(self, filename, var_names):
+        variables = {}
+        for key in var_names:
+            if key in self.diseases.keys():
+                variables[key] = self[key]['states']
+            elif key in self.attributes.keys():
+                variables[key] = self[key]
+        dict_to_csv(variables, filename)

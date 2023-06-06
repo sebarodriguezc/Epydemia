@@ -1,6 +1,7 @@
 from . import Event
 from . import SusceptibleToRecovered
 import numpy as np
+from . import VACCINE_STATES, MASKING_STATES
 
 # TODO: #14 Simulator must initialize the required attributes 'masking', 'quarantine'
 
@@ -20,8 +21,8 @@ class Intervention(Event):
 
 class Masking(Intervention):
     '''docstring'''
-    MASKING_STATES = {'no masking': 0,
-                      'masking': 1}
+    #MASKING_STATES = {'no masking': 0,
+    #                  'masking': 1}
 
     def do(self):
         if self.simulator.verbose:
@@ -90,11 +91,11 @@ class Vaccination(Intervention):
             (self.simulator.population[self.disease_name]['states'] ==
              self.simulator.population.diseases[
                  self.disease_name]['states']['susceptible']) &
-            (self.simulator.population[self.disease_name]['vaccine'] == Vaccination.VACCINE_STATES['not vaccinated']))[0]
+            (self.simulator.population[self.disease_name]['vaccine'] == VACCINE_STATES[self.disease_name]['not vaccinated']))[0]
 
         target_idx = target_idx[np.isin(target_idx, idx, assume_unique=True)]
         self.simulator.population[
-            self.disease_name]['vaccine'][target_idx] = Vaccination.VACCINE_STATES['vaccinated']
+            self.disease_name]['vaccine'][target_idx] = VACCINE_STATES[self.disease_name]['vaccinated']
         SusceptibleToRecovered(self.simulator.now(), self.simulator,
                                self.simulator.population, target_idx)
 
