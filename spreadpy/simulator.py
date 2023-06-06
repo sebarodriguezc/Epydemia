@@ -59,7 +59,7 @@ class AgentBasedSim(Simulator):
                 self.population.add_attribute(key, value)
         elif how == '':
             pass
-        ImportCases(0, self, self.population, [0, 2, 10, 15, 30])  # TODO: #12 implement how to import cases
+        ImportCases(0, self, [0, 2, 10, 15, 30])  # TODO: #12 implement how to import cases
 
     def add_intervention(self, intervention_type, time, **intervention_kwargs):
         # TODO: #5 can have a list of interventions instead of if statements

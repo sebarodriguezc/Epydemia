@@ -96,8 +96,8 @@ class Vaccination(Intervention):
         target_idx = target_idx[np.isin(target_idx, idx, assume_unique=True)]
         self.simulator.population[
             self.disease_name]['vaccine'][target_idx] = VACCINE_STATES[self.disease_name]['vaccinated']
-        SusceptibleToRecovered(self.simulator.now(), self.simulator,
-                               self.simulator.population, target_idx)
+        SusceptibleToRecovered(self.simulator.now(),
+                               self.simulator, target_idx)
 
 def vaccinate_age(population, stream, age_target, coverage):
     idx_ = np.where((population['age'] >= age_target[0]) &
