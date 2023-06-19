@@ -1,8 +1,8 @@
 #pass
 
-from .basesim import *
-from .utils import *
+from .basedesim import *
 from .parameters import *
+from .utils import *
 from .disease import *
 from .network import *
 from .intervention import *

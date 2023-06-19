@@ -2,18 +2,18 @@ from . import Event
 from . import SusceptibleToRecovered
 import numpy as np
 from . import VACCINE_STATES, MASKING_STATES
+from . import proportion_masked, neighbors_are_symptomatic, total_hospitalized
 
 # TODO: #14 Simulator must initialize the required attributes 'masking', 'quarantine'
 
 class Intervention(Event):
     ''' docstring '''
 
-    def __init__(self, time, simulator, func=None, args=None):
+    def __init__(self, time, simulator, **kwargs):
         # TODO: #13 Rethink how interventions are defined in terms of args
         super().__init__(time, simulator)
         self.simulator = simulator
-        self.func = func
-        self.args = args
+        self.kwargs = kwargs
 
     def do(self):
         pass
@@ -21,14 +21,47 @@ class Intervention(Event):
 
 class Masking(Intervention):
     '''docstring'''
-    #MASKING_STATES = {'no masking': 0,
-    #                  'masking': 1}
 
     def do(self):
         if self.simulator.verbose:
             print('Masking intervention')
-        self.simulator.population['masking'] = self.func(self.args)
+        self.simulator.population['masking'] = self.kwargs[
+            'func'](self.kwargs['args'])
         self.simulator.population.update_transmission_weights()
+
+
+class MaskingBehavior(Intervention):
+    '''docstring'''
+
+    def __init__(self, time, simulator, stream):
+        super().__init__(time, simulator)
+        self.simulator = simulator
+        self.stream = stream
+
+    def do(self):
+        if self.simulator.verbose:
+            print('Masking behavior')
+
+        pop = self.simulator.population
+        neighbors = pop.network.get_neighbors()
+        pop['sn'] = np.array(list(map(proportion_masked, list(pop for n in neighbors), neighbors)))
+        pop['susceptibility'] = np.array(list(map(neighbors_are_symptomatic, list(pop for n in neighbors),
+                                                  neighbors)))
+        #pop['severity'] = np.array(list(map(hospitalized_deaths,
+        #                                    neighbors)))
+        pop['severity'] = total_hospitalized(pop)
+        bi = pop['w1']*pop['susceptibility'] + pop['w2']*pop['severity'] + pop[
+            'w3']*pop['sn'] + pop['w4']*pop['pbc']
+        p_bi = 1/(1 + np.exp(-12*(bi - 0.4)))
+        pop['masking'] = np.where(
+            self.stream.rand(pop.population_size) < p_bi,
+            MASKING_STATES['masking'],
+            MASKING_STATES['no masking'])
+        pop['pbc'] = np.where(
+            pop['masking'] == MASKING_STATES['masking'],
+            pop['pbc'] + (1 - pop['pbc'])*0.25,
+            pop['pbc'] - (1 - pop['pbc'])*0.25)
+        pop.update_transmission_weights()
 
 
 class Quarantine(Intervention):
@@ -99,8 +132,3 @@ class Vaccination(Intervention):
         SusceptibleToRecovered(self.simulator.now(),
                                self.simulator, target_idx)
 
-def vaccinate_age(population, stream, age_target, coverage):
-    idx_ = np.where((population['age'] >= age_target[0]) &
-                    (population['age'] <= age_target[1]))[0]
-    return stream.choice(idx_, size=round(int(len(idx_)*coverage)),
-                         replace=False)

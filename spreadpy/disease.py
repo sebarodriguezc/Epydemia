@@ -18,6 +18,8 @@ class Disease(SelfObject, ABC):
         pass
 
 
+
+
 '''
 class ChangeState(Event):
 
@@ -77,7 +79,8 @@ class ExposedToPresymptomatic(Event):
 
     def do(self):
         time = 0.5
-        self.simulator.population.change_state(self.idx, 'covid', 'presymptomatic')
+        self.simulator.population.change_state(self.idx, 'covid',
+                                               'presymptomatic')
         if Covid.stream.random() < 1/3:
             PresymptomaticToSymptomatic(self.simulator.now() + time,
                                         self.simulator, self.idx)
@@ -232,6 +235,7 @@ class Covid(Disease):
 
     def __init__(self, simulator, attributes):
         super().__init__('covid', attributes)
+        self.simulator = simulator
         self['states'] = {'susceptible': 0,
                           'exposed': 1,
                           'presymptomatic': 2,
@@ -244,7 +248,7 @@ class Covid(Disease):
                                      self['states']['symptomatic'],
                                      self['states']['asymptomatic']]
         self['infection_prob'] = attributes['infection_prob']
-        self.simulator = simulator
+        ImportCases(0, self.simulator, attributes['initial_cases'])  # TODO: #12 implement how to import cases
 
     def progression(self, population):
         susceptibles, probability = population.get_suceptible_prob(
