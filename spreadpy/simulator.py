@@ -1,8 +1,8 @@
 from . import Event, Simulator, Stream
 from . import Population
 from . import ImportCases
-from . import Masking, Vaccination
-from . import Covid
+from . import Intervention, Masking, Vaccination, MaskingBehavior
+from . import Disease, Covid
 from . import StatsCollector
 from . import from_file_proportion
 import numpy as np
@@ -19,8 +19,8 @@ class AgentBasedSim(Simulator):
     def run(self, stop_time, verbose=True, seeds=(1024,)):
         self.verbose = verbose
         self.collector = StatsCollector()
-        
-        Covid.stream = Stream(seed=seeds[0])
+
+        Covid.stream = Stream(seed=seeds[0])  # TODO: Assign streams for each disease class or object?
 
         Step.initialize(self, stop_time)
         super().run(stop_time)
@@ -59,26 +59,21 @@ class AgentBasedSim(Simulator):
                 self.population.add_attribute(key, value)
         elif how == '':
             pass
-        ImportCases(0, self, [0, 2, 10, 15, 30])  # TODO: #12 implement how to import cases
 
-    def add_intervention(self, intervention_type, time, **intervention_kwargs):
-        # TODO: #5 can have a list of interventions instead of if statements
-        if intervention_type == 'masking':
-            Masking(time, self, **intervention_kwargs)
-        elif intervention_type == 'vaccination':
-            Vaccination(time, self, **intervention_kwargs)
+    def add_intervention(self, InterventionCls, time, **intervention_kwargs):
+        assert(issubclass(InterventionCls, Intervention))
+        InterventionCls(time, self, **intervention_kwargs)
 
-    def add_disease(self, disease_type, *disease_args, **disease_kwargs):
-        if disease_type == 'covid':
-            disease = Covid(self, *disease_args, **disease_kwargs)
-        self.population.introduce_disease(disease)
+    def add_disease(self, DiseaseCls, *disease_args, **disease_kwargs):
+        assert(issubclass(DiseaseCls, Disease))
+        self.population.introduce_disease(DiseaseCls(self, *disease_args, **disease_kwargs))
+        # ImportCases(0, self, [0, 2, 10, 15, 30])  # TODO: #12 implement how to import cases
 
-    def add_layer(self, layer_name, how='random', **kwargs):
+    def add_layer(self, layer_name, **kwargs):
         ''' should be given the option to give the vertices' id to do a new layer'''
         if 'n' not in kwargs:
             kwargs['n'] = self.population.population_size
-        if how == 'random':
-            self.population.network.add_layer(layer_name=layer_name, how=how, **kwargs)
+        self.population.network.add_layer(layer_name=layer_name, **kwargs)
 
 
 class Step(Event):
@@ -95,13 +90,20 @@ class Step(Event):
             print('New day beginning {}'.format(self.time))
         for _, disease in self.simulator.population.diseases.items():
             disease.progression(self.simulator.population)
-        
+
         # Stats collections here
         for i, name in zip(range(8),
                            ['S', 'E', 'P', 'Sy', 'A', 'R', 'H', 'D']):
             stat = len(
                 np.where(self.simulator.population['covid']['states'] == i)[0])
             self.simulator.collector.collect(name, stat)
+        self.simulator.collector.collect(
+            'masking', (self.simulator.population['masking'] == 1).sum())
+        try:
+            self.simulator.collector.collect(
+                'sn', self.simulator.population['sn'].mean())
+        except:
+            pass
 
     @classmethod
     def initialize(cls, simulator, stop_time):
