@@ -18,34 +18,16 @@ class Disease(SelfObject, ABC):
         pass
 
 
-
-
-'''
 class ChangeState(Event):
-
-    def __init__(self, time, simulator, population_ids, disease_name, to_state):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = population_ids
-        self.to_state = to_state
-        self.disease_name = disease_name
-
-    def do(self):
-        self.simulator.population[self.disease_name]['states'][self.idx] = self.to_state
-        print('Changing state to ', self.to_state)
-'''
-
-
-class SusceptibleToExposed(Event):
-
-    # TODO: This EVENT might need to change to accept idx and code do() outside.
 
     def __init__(self, time, simulator, idx):
         super().__init__(time, simulator)
         self.time = time
         self.simulator = simulator
         self.idx = idx
+
+
+class SusceptibleToExposed(ChangeState):
 
     def do(self):
         self.simulator.population.change_state(self.idx, 'covid', 'exposed')
@@ -54,13 +36,7 @@ class SusceptibleToExposed(Event):
                                 self.simulator, self.idx)
 
 
-class SusceptibleToRecovered(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
+class SusceptibleToRecovered(ChangeState):
 
     def do(self):
         time = Covid.stream.gamma(25, 10)
@@ -69,13 +45,7 @@ class SusceptibleToRecovered(Event):
                                self.idx)
 
 
-class ExposedToPresymptomatic(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
+class ExposedToPresymptomatic(ChangeState):
 
     def do(self):
         time = 0.5
@@ -89,13 +59,7 @@ class ExposedToPresymptomatic(Event):
                                          self.simulator, self.idx)
 
 
-class PresymptomaticToSymptomatic(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
+class PresymptomaticToSymptomatic(ChangeState):
 
     def do(self):
         time = Covid.stream.exponential(3)
@@ -108,13 +72,7 @@ class PresymptomaticToSymptomatic(Event):
                                    self.simulator, self.idx)
 
 
-class SymptomaticToHospitalized(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
+class SymptomaticToHospitalized(ChangeState):
 
     def do(self):
         time = Covid.stream.exponential(10.4)
@@ -127,13 +85,7 @@ class SymptomaticToHospitalized(Event):
                                     self.simulator, self.idx)
 
 
-class HospitalizedToRecovered(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
+class HospitalizedToRecovered(ChangeState):
 
     def do(self):
         self.simulator.population.change_state(self.idx, 'covid', 'recovered')
@@ -142,26 +94,14 @@ class HospitalizedToRecovered(Event):
                                self.simulator, self.idx)
 
 
-class HospitalizedToDeath(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
+class HospitalizedToDeath(ChangeState):
 
     def do(self):
         self.simulator.population.change_state(self.idx, 'covid', 'death')
         # TODO: #16 cancel all events related to individual
 
 
-class PresymptomaticToAsymptomatic(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
+class PresymptomaticToAsymptomatic(ChangeState):
 
     def do(self):
         time = Covid.stream.exponential(2)
@@ -170,13 +110,7 @@ class PresymptomaticToAsymptomatic(Event):
                                 self.simulator, self.idx)
 
 
-class SymptomaticToRecovered(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
+class SymptomaticToRecovered(ChangeState):
 
     def do(self):
         self.simulator.population.change_state(self.idx, 'covid', 'recovered')
@@ -185,13 +119,7 @@ class SymptomaticToRecovered(Event):
                                self.simulator, self.idx)
 
 
-class AsymptomaticToRecovered(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
+class AsymptomaticToRecovered(ChangeState):
 
     def do(self):
         self.simulator.population.change_state(self.idx, 'covid', 'recovered')
@@ -200,25 +128,13 @@ class AsymptomaticToRecovered(Event):
                                self.simulator, self.idx)
 
 
-class RecoveredToSusceptible(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
+class RecoveredToSusceptible(ChangeState):
 
     def do(self):
         self.simulator.population.change_state(self.idx, 'covid', 'susceptible')
 
 
-class ImportCases(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
+class ImportCases(ChangeState):
 
     def do(self):
         self.simulator.population.change_state(self.idx, 'covid', 'symptomatic')
