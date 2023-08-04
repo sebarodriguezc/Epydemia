@@ -1,8 +1,7 @@
 from . import Event, Simulator, Stream
 from . import Population
-from . import ImportCases
-from . import Intervention, Masking, Vaccination, MaskingBehavior
-from . import Disease, Covid
+from . import Intervention
+from . import Disease
 from . import StatsCollector
 from . import from_file_proportion
 import numpy as np
@@ -11,18 +10,20 @@ import random
 class AgentBasedSim(Simulator):
     ''' docstring '''
 
-    def __init__(self):
+    def __init__(self, StepCls):
         super().__init__()
         self.population = None
         self.verbose = True
+        assert(issubclass(StepCls, Step))
+        self.step = StepCls
 
     def run(self, stop_time, verbose=True, seeds=(1024,)):
         self.verbose = verbose
         self.collector = StatsCollector()
 
-        Covid.stream = Stream(seed=seeds[0])  # TODO: Assign streams for each disease class or object?
+        #Covid.stream = Stream(seed=seeds[0])  # TODO: Assign streams for each disease class or object?
 
-        Step.initialize(self, stop_time)
+        self.step.initialize(self, stop_time)
         super().run(stop_time)
 
     def initialize_population(self, how=None,
@@ -64,9 +65,13 @@ class AgentBasedSim(Simulator):
         assert(issubclass(InterventionCls, Intervention))
         InterventionCls(time, self, **intervention_kwargs)
 
-    def add_disease(self, DiseaseCls, *disease_args, **disease_kwargs):
+    def add_disease(self, DiseaseCls, states_seed=None,
+                    vaccine_seed=None, disease_kwargs={}):
         assert(issubclass(DiseaseCls, Disease))
-        self.population.introduce_disease(DiseaseCls(self, *disease_args, **disease_kwargs))
+        self.population.introduce_disease(
+            DiseaseCls(self, disease_kwargs),
+            states_seed,
+            vaccine_seed)
         # ImportCases(0, self, [0, 2, 10, 15, 30])  # TODO: #12 implement how to import cases
 
     def add_layer(self, layer_name, **kwargs):
@@ -77,8 +82,6 @@ class AgentBasedSim(Simulator):
 
 
 class Step(Event):
-    ''' Disease progression '''
-    STEP_SIZE = 1 # Daily time step
 
     def __init__(self, time, simulator):
         super().__init__(time, simulator)
@@ -86,26 +89,7 @@ class Step(Event):
         self.simulator = simulator
 
     def do(self):
-        if self.simulator.verbose:
-            print('New day beginning {}'.format(self.time))
-        for _, disease in self.simulator.population.diseases.items():
-            disease.progression(self.simulator.population)
+        pass
 
-        # Stats collections here
-        for i, name in zip(range(8),
-                           ['S', 'E', 'P', 'Sy', 'A', 'R', 'H', 'D']):
-            stat = len(
-                np.where(self.simulator.population['covid']['states'] == i)[0])
-            self.simulator.collector.collect(name, stat)
-        self.simulator.collector.collect(
-            'masking', (self.simulator.population['masking'] == 1).sum())
-        try:
-            self.simulator.collector.collect(
-                'sn', self.simulator.population['sn'].mean())
-        except:
-            pass
-
-    @classmethod
-    def initialize(cls, simulator, stop_time):
-        for t in np.arange(0, int(stop_time)+1, Step.STEP_SIZE): 
-            Step(t, simulator)
+    def initialize(cls, simulator, *args, **kwargs):
+        pass

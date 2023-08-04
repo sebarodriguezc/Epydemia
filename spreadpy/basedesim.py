@@ -115,6 +115,8 @@ class Stream(np.random.RandomState):
 
     def __init__(self, seed):
         super().__init__(seed=seed)
+        self.seed = seed
+    
 
 
 if __name__ == '__main__':

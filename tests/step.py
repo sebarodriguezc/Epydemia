@@ -1,0 +1,40 @@
+import sys
+sys.path.append('../')
+import numpy as np
+from spreadpy import Step
+
+class DailyStep(Step):
+    ''' Disease progression '''
+    STEP_SIZE = 1 # Daily time step
+
+    def __init__(self, time, simulator):
+        super().__init__(time, simulator)
+        self.time = time
+        self.simulator = simulator
+
+    @classmethod
+    def initialize(cls, simulator, stop_time):
+        for t in np.arange(0, int(stop_time)+1, DailyStep.STEP_SIZE):
+            DailyStep(t, simulator)
+
+    def do(self):
+        if self.simulator.verbose:
+            print('New day beginning {}'.format(self.time))
+        for _, disease in self.simulator.population.diseases.items():
+            disease.progression(self.simulator.population)
+
+        # Stats collections here
+        for i, name in zip(range(8),
+                           ['S', 'E', 'P', 'Sy', 'A', 'R', 'H', 'D']):
+            stat = len(
+                np.where(self.simulator.population['covid']['states'] == i)[0])
+            self.simulator.collector.collect(name, stat)
+        self.simulator.collector.collect(
+            'masking', (self.simulator.population['masking'] == 1).sum())
+        try:
+            self.simulator.collector.collect(
+                'sn', self.simulator.population['sn'].mean())
+        except:
+            pass
+
+

@@ -1,7 +1,7 @@
 from . import SelfObject
 from . import Disease
 from . import Network
-from . import Vaccination
+from . import VACCINE_STATES
 from . import dict_to_csv
 import numpy as np
 import itertools
@@ -48,7 +48,7 @@ class Population(SelfObject):
         if isinstance(vaccine_seed, type(None)):
             self[disease.name]['vaccine'] = np.full(
                 self.population_size,
-                Vaccination.VACCINE_STATES['not vaccinated'])
+                VACCINE_STATES[disease.name]['not vaccinated'])
         else:
             assert(len(vaccine_seed) == self.population_size)
             self[disease.name]['states'] = vaccine_seed
@@ -116,7 +116,6 @@ class Population(SelfObject):
                 calc_prob(layer.graph.es.select(
                  _source=person, _target=neighbors)[disease_name])
                 for person, neighbors in zip(susceptibles, neighborhoods)])
-        print(susceptibles)
 
         prob_infection = list(map(calc_prob, zip(*prob_infection)))
         return susceptibles, prob_infection

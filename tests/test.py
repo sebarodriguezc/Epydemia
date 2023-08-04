@@ -7,72 +7,68 @@ importlib.reload(sp)
 import matplotlib.pyplot as plt
 import time
 import numpy as np
-
+from covid import Covid, ImportCases
+from interventions import Masking, MaskingBehavior, Vaccination
+from step import DailyStep
 
 #%%
 if __name__ == '__main__':
-    sim = sp.AgentBasedSim()
+    sim = sp.AgentBasedSim(DailyStep)
 
     # Initialize model
-    pop_size = 100
-    stream_pop = sp.Stream(seed=10753)
+    simulate_for = 365
+    pop_size = 50000
     sim.initialize_population(
         how='proportion_file',
         population_size=pop_size,
         network_seed=1024,
+        population_seed=10753,
         filename='../data/population.csv')
 
-    stream = sp.Stream(seed=1023)
-    # sim.population.add_attribute('w1', stream.rand(pop_size))
-    # sim.population.add_attribute('w2',  stream.uniform(0, 1-sim.population['w1'], pop_size))
-    # sim.population.add_attribute('w3',  stream.uniform(0, 1-sim.population['w1']-sim.population['w2'], pop_size))
-
-    sim.population.add_attribute('w1', np.full(pop_size, 0.1))  # Susceptibility 
-    sim.population.add_attribute('w2', np.full(pop_size, 0.1))  # Severity
-    sim.population.add_attribute('w3', np.full(pop_size, 0.1))   # Subjective norm
-    sim.population.add_attribute('w4', np.full(pop_size, 0.7))   # PBC
-
-    sim.population.add_attribute('susceptibility',  np.full(pop_size, 0.35))
-    sim.population.add_attribute('pbc',  np.full(pop_size, 0.2))
+    stream = sp.Stream(seed=3654)
+    sim.population.add_attribute('w1', stream.rand(pop_size))   # Susceptibility 
+    sim.population.add_attribute('w2', stream.uniform(0, 1 - sim.population['w1'], size=pop_size))   # Severity
+    sim.population.add_attribute('w3', stream.uniform(0, 1 - sim.population['w1'] - sim.population['w2'], size=pop_size))  # Subjective norm
+    sim.population.add_attribute('w4', 1 - sim.population['w1'] - sim.population['w2'] - sim.population['w3'])  # PBC
+    sim.population.add_attribute('susceptibility',  np.full(pop_size, 0.2))
+    sim.population.add_attribute('pbc',  stream.rand(pop_size))
+    # Add mask mandate?
 
     # Create layers of network
-    # sim.add_layer(layer_name='community', how='random', p=0.05)  # p=0.005)
-    sim.add_layer(layer_name='community', how='random', n=pop_size, m=5)  # p=0.005)
-    #sim.add_layer(layer_name='school', how='random', p=0.05)  # p=0.005)
+    sim.add_layer(layer_name='community', how='random', n=pop_size, m=20)
 
     # Define disease
-    sim.add_disease(sp.Covid, {'infection_prob': 0.05,
-                              'initial_cases': [0, 2, 10, 15, 30]})
+    covid_seed = stream.choice([0, 5], size=pop_size, p=[0.5, 0.5])
+    sim.add_disease(Covid, states_seed=covid_seed,
+                    disease_kwargs={'infection_prob': 0.05,
+                                    'initial_cases': 5,x
+                                    'stream': sp.Stream(65347)})
 
     # Interventions
     stream = sp.Stream(seed=1023)
     initial_masking = 0.2
-    '''
-    sim.add_intervention('masking', 3, func=lambda x: x,
+    sim.add_intervention(Masking, 3, func=lambda x: x,
                          args=stream.choice([0, 1],
                                             pop_size,
-                                            p=(1-initial_masking, initial_masking)))
-    for t in range(6, 150):
-        sim.add_intervention('masking_behavior', t,
+                                            p=(1-initial_masking,
+                                               initial_masking)))
+    for t in range(6, simulate_for):
+        sim.add_intervention(MaskingBehavior, t,
                              stream=stream)
-    '''
-    sim.add_intervention(sp.Masking, 3, func=lambda x: x,
-                         args=stream.choice([0, 1],
-                                            pop_size,
-                                            p=(1-initial_masking, initial_masking)))
-    for t in range(6, 150):
-        sim.add_intervention(sp.MaskingBehavior, t,
-                             stream=stream)
-    sim.add_intervention(sp.Vaccination, 50, disease_name='covid',
+    sim.add_intervention(Vaccination, 50, disease_name='covid',
                          target_func=sp.vaccinate_age, stream=stream,
                          age_target=(50, 65), coverage=0.6)
-    sim.add_intervention(sp.Vaccination, 55, disease_name='covid',
+    sim.add_intervention(Vaccination, 55, disease_name='covid',
                          target_func=sp.vaccinate_age, stream=stream,
                          age_target=(50, 65), coverage=0.6)
+    
+    # Import cases
+    #ImportCases(150, sim, 5)
+    #ImportCases(250, sim, 5)
 
     # Run model
     tm = time.time()
-    sim.run(stop_time=365)  # Streams should be set when running the model
+    sim.run(stop_time=simulate_for)  # Streams should be set when running the model
     print(time.time() - tm)
 
     #%%
