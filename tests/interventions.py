@@ -114,7 +114,7 @@ class Quarantine(Intervention):
             assert(len(self.simulator.population['quarantine']) ==
                    self.simulator.population.size)
         except AssertionError:
-            self.simulator.population['quaratine'] = np.zeros(
+            self.simulator.population['quarantine'] = np.zeros(
                 self.simulator.population.size)
         self.simulator.population['quarantine'][self.idx] = 1
         self.simulator.population.update_transmission_weights()
