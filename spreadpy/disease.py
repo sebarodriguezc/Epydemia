@@ -12,12 +12,13 @@ class Disease(SelfObject, ABC):
         self.stream = stream
         super().__init__(attributes)
         self['infection_prob'] = infection_prob
+        self['states'] = {}
 
     @abstractmethod
     def progression(self):
         pass
 
-    def update_transmission(self, population, edge_seq, vertex_seq):
+    def update_transmission(self, population, edge_seq, vertex_pair_seq):
         pass
 
     def initialize(self, population):

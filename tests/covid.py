@@ -175,7 +175,7 @@ class Covid(Disease):
             SusceptibleToExposed(self.simulator.now(),
                                  self.simulator, person)
 
-    def update_transmission(self, population, edge_seq, vertex_seq):
+    def update_transmission(self, population, edge_seq, vertex_pair_seq):
         '''
         Update transmission must consider all interventions
         '''
@@ -188,5 +188,5 @@ class Covid(Disease):
             else:
                 return 0.3
         vfunc = np.vectorize(masking_prob)
-        masking_p = vfunc(*population['masking'][vertex_seq].T)
+        masking_p = vfunc(*population['masking'][vertex_pair_seq].T)
         return masking_p*self['infection_prob']

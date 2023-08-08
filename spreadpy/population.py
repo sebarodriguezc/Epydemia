@@ -130,7 +130,8 @@ class Population(SelfObject):
     def plot_network(self, ax, layer, **plot_kwargs):
         ig.plot(self.network[layer].graph, target=ax, **plot_kwargs)
 
-    def update_transmission_weights(self, disease_names=None, layer_names=None):
+    def update_transmission_weights(self, disease_names=None,
+                                    layer_names=None, target_vertex_seq=None):
         # TODO: #3 implement that a subset of vertices can be updated.
         if isinstance(disease_names, type(None)):
             disease_names = self.diseases.keys()
@@ -138,7 +139,7 @@ class Population(SelfObject):
             layer_names = self.network.layers.keys()
 
         for layer_name in layer_names:
-            es, vs = self.network.get_edges(layer_name)
+            es, vs = self.network.get_edges(layer_name, target_vertex_seq)
             for disease_name in disease_names:
                 new_p = self.diseases[disease_name].update_transmission(
                     self, es, vs)  # TODO: #9 edges shouldn't be consider here
