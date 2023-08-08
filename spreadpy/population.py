@@ -1,10 +1,9 @@
 from . import SelfObject
 from . import Disease
 from . import Network
-from . import VACCINE_STATES
+#from . import VACCINE_STATES
 from . import dict_to_csv
 import numpy as np
-import itertools
 import igraph as ig
 
 class Population(SelfObject):
@@ -29,15 +28,18 @@ class Population(SelfObject):
         assert(len(values) == self.size)
         self[attribute_name] = values
 
-    def introduce_disease(self, disease, states_seed=None, vaccine_seed=None):
+    def introduce_disease(self, disease, states_seed=None):
         '''Must be called when population has been created'''
         try:
             assert issubclass(type(disease), Disease)
         except AssertionError:
             raise ValueError('Must be a Disease object')
+
+        # Create data structure
         self.diseases[disease.name] = disease
         self[disease.name] = {}
 
+        # Initialize states based on seed or all susceptible
         if isinstance(states_seed, type(None)):
             self[disease.name]['states'] = np.full(
                 self.size, disease['states']['susceptible'])
@@ -45,15 +47,11 @@ class Population(SelfObject):
             assert(len(states_seed) == self.size)
             self[disease.name]['states'] = states_seed
 
-        if isinstance(vaccine_seed, type(None)):
-            self[disease.name]['vaccine'] = np.full(
-                self.size,
-                VACCINE_STATES[disease.name]['not vaccinated'])
-        else:
-            assert(len(vaccine_seed) == self.size)
-            self[disease.name]['states'] = vaccine_seed
+        # Execute any disease initialization
+        disease.initialize(self)
 
-        for layer_name in self.network.layers.keys():  # Add probability
+        # Add probability of infection to the network
+        for layer_name in self.network.layers.keys():
             self.network.add_attributes_edges(layer_name, disease.name,
                                               disease['infection_prob'])
 

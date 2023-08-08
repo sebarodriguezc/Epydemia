@@ -39,8 +39,8 @@ if __name__ == '__main__':
     # Define disease
     covid_seed = stream.choice([0, 5], size=pop_size, p=[0.5, 0.5])
     sim.add_disease(Covid, states_seed=covid_seed,
-                    disease_kwargs={'attributes':{'infection_prob': 0.05,
-                                    'initial_cases': 5},
+                    disease_kwargs={'infection_prob': 0.01,
+                                    'initial_cases': 5,
                                     'stream': sp.Stream(65347)})
 
     # Interventions
