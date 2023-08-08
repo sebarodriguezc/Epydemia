@@ -135,9 +135,13 @@ class ImportCases(Event):
 class Covid(Disease):
 
     # TODO: #6 states could be a class attribute instead of object
+    VACCINE_STATES = {
+        'not vaccinated': 0,
+        'vaccinated': 1}
 
-    def __init__(self, simulator, attributes, stream):
-        super().__init__('covid', simulator, attributes, stream)
+    def __init__(self, simulator, stream, infection_prob=0.5,
+                 initial_cases=5, vaccine_seed=None, **kwargs):
+        super().__init__('covid', simulator, stream, infection_prob, **kwargs)
         self['states'] = {'susceptible': 0,
                           'exposed': 1,
                           'presymptomatic': 2,
@@ -149,9 +153,18 @@ class Covid(Disease):
         self['contagious_states'] = [self['states']['presymptomatic'],
                                      self['states']['symptomatic'],
                                      self['states']['asymptomatic']]
-        self['infection_prob'] = attributes['infection_prob']
-        ## self.stream = attributes['stream']
-        ImportCases(0, self.simulator, attributes['initial_cases'])  # TODO: #12 implement how to import cases
+        self['infection_prob'] = infection_prob
+        self['vaccine_seed'] = vaccine_seed
+        ImportCases(0, self.simulator, initial_cases)  # TODO: #12 implement how to import cases
+
+    def initialize(self, population):
+        if isinstance(self['vaccine_seed'], type(None)):
+            population[self.name]['vaccine'] = np.full(
+                population.size,
+                Covid.VACCINE_STATES['not vaccinated'])
+        else:
+            assert(len(self['vaccine_seed']) == population.size)
+            population[self.name]['states'] = self['vaccine_seed']
 
     def progression(self, population):
         susceptibles, probability = population.get_suceptible_prob(

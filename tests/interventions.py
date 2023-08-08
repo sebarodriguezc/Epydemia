@@ -2,7 +2,7 @@ import sys
 sys.path.append('../')
 import numpy as np
 from spreadpy.intervention import Intervention
-from spreadpy.parameters import MASKING_STATES, VACCINE_STATES
+from spreadpy.parameters import MASKING_STATES
 from covid import SusceptibleToRecovered
 import time
 
@@ -157,10 +157,13 @@ class Vaccination(Intervention):
             (self.simulator.population[self.disease_name]['states'] ==
              self.simulator.population.diseases[
                  self.disease_name]['states']['susceptible']) &
-            (self.simulator.population[self.disease_name]['vaccine'] == VACCINE_STATES[self.disease_name]['not vaccinated']))[0]
+            (self.simulator.population[self.disease_name][
+                'vaccine'] == self.simulator.population.diseases[
+                    self.disease_name].VACCINE_STATES['not vaccinated']))[0]
 
         target_idx = target_idx[np.isin(target_idx, idx, assume_unique=True)]
-        self.simulator.population[
-            self.disease_name]['vaccine'][target_idx] = VACCINE_STATES[self.disease_name]['vaccinated']
+        self.simulator.population[self.disease_name][
+                'vaccine'][target_idx] = self.simulator.population.diseases[
+                    self.disease_name].VACCINE_STATES['vaccinated']
         SusceptibleToRecovered(self.simulator.now(),
                                self.simulator, target_idx)

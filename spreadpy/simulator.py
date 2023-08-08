@@ -70,7 +70,7 @@ class AgentBasedSim(Simulator):
         InterventionCls(time, self, **intervention_kwargs)
 
     def add_disease(self, DiseaseCls, states_seed=None,
-                    vaccine_seed=None, disease_kwargs={}):
+                    disease_kwargs={}):
         try:
             assert(not isinstance(self.population, type(None)))
         except AssertionError:
@@ -78,8 +78,7 @@ class AgentBasedSim(Simulator):
         assert(issubclass(DiseaseCls, Disease))
         self.population.introduce_disease(
             DiseaseCls(self, **disease_kwargs),
-            states_seed,
-            vaccine_seed)
+            states_seed)
         # ImportCases(0, self, [0, 2, 10, 15, 30])  # TODO: #12 implement how to import cases
 
     def add_layer(self, layer_name, **kwargs):
