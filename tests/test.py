@@ -16,9 +16,9 @@ if __name__ == '__main__':
     sim = sp.AgentBasedSim(DailyStep)
 
     # Initialize model
-    simulate_for = 365
-    pop_size = 50000
-    sim.initialize_population(
+    simulate_for = 20
+    pop_size = 200
+    sim.create_population(
         how='proportion_file',
         population_size=pop_size,
         network_seed=1024,
@@ -32,16 +32,15 @@ if __name__ == '__main__':
     sim.population.add_attribute('w4', 1 - sim.population['w1'] - sim.population['w2'] - sim.population['w3'])  # PBC
     sim.population.add_attribute('susceptibility',  np.full(pop_size, 0.2))
     sim.population.add_attribute('pbc',  stream.rand(pop_size))
-    # Add mask mandate?
 
     # Create layers of network
-    sim.add_layer(layer_name='community', how='random', n=pop_size, m=20)
+    sim.add_layer(layer_name='community', how='barabasi', n=pop_size, m=10)
 
     # Define disease
     covid_seed = stream.choice([0, 5], size=pop_size, p=[0.5, 0.5])
     sim.add_disease(Covid, states_seed=covid_seed,
-                    disease_kwargs={'infection_prob': 0.05,
-                                    'initial_cases': 5,x
+                    disease_kwargs={'attributes':{'infection_prob': 0.05,
+                                    'initial_cases': 5},
                                     'stream': sp.Stream(65347)})
 
     # Interventions
