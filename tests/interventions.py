@@ -56,9 +56,9 @@ class MaskingBehavior(Intervention):
             if any(population[
                 'covid']['states'] == population.diseases[
                     'covid']['states']['hospitalized']):
-                return np.ones(population.population_size)
+                return np.ones(population.size)
             else:
-                return np.zeros(population.population_size)
+                return np.zeros(population.size)
         if self.simulator.verbose:
             print('Masking behavior')
 
@@ -89,7 +89,7 @@ class MaskingBehavior(Intervention):
             'w3']*pop['sn'] + pop['w4']*pop['pbc']
         p_bi = 1/(1 + np.exp(-12*(bi - 0.2)))*(1-base_prob) + base_prob 
         pop['masking'] = np.where(
-            self.stream.rand(pop.population_size) < p_bi,
+            self.stream.rand(pop.size) < p_bi,
             MASKING_STATES['masking'],
             MASKING_STATES['no masking'])
         pop['pbc'] = np.where(
@@ -112,10 +112,10 @@ class Quarantine(Intervention):
     def do(self):
         try:
             assert(len(self.simulator.population['quarantine']) ==
-                   self.simulator.population.population_size)
+                   self.simulator.population.size)
         except AssertionError:
             self.simulator.population['quaratine'] = np.zeros(
-                self.simulator.population.population_size)
+                self.simulator.population.size)
         self.simulator.population['quarantine'][self.idx] = 1
         self.simulator.population.update_transmission_weights()
         EndQuarantine(self.simulator.now() + self.length, self.simulator,

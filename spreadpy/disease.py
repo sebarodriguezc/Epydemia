@@ -1,14 +1,15 @@
-from . import SelfObject, Event, Stream
-import numpy as np
+from . import SelfObject
 from abc import ABC, abstractmethod
 
 class Disease(SelfObject, ABC):
     ''' docstring '''
 
-    def __init__(self, name, attributes):
+    def __init__(self, name, simulator, attributes, stream):
         # states
         self.name = name
+        self.simulator = simulator
         super().__init__(attributes)
+        self.stream = stream
 
     @abstractmethod
     def progression(self):
@@ -16,14 +17,3 @@ class Disease(SelfObject, ABC):
 
     def update_transmission(self, population, edge_seq, vertex_seq):
         pass
-
-
-class ChangeState(Event):
-
-    def __init__(self, time, simulator, idx):
-        super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
-        self.idx = idx
-
-

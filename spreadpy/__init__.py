@@ -1,6 +1,7 @@
 #pass
 
 from .basedesim import *
+from .special_events import *
 from .parameters import *
 from .utils import *
 from .disease import *

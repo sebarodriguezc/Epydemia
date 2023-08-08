@@ -13,8 +13,8 @@ class DailyStep(Step):
         self.simulator = simulator
 
     @classmethod
-    def initialize(cls, simulator, stop_time):
-        for t in np.arange(0, int(stop_time)+1, DailyStep.STEP_SIZE):
+    def initialize(cls, simulator):
+        for t in np.arange(0, int(simulator.stop_time)+1, DailyStep.STEP_SIZE):
             DailyStep(t, simulator)
 
     def do(self):
@@ -36,5 +36,3 @@ class DailyStep(Step):
                 'sn', self.simulator.population['sn'].mean())
         except:
             pass
-
-

@@ -1,7 +1,8 @@
 import sys
 sys.path.append('../')
 import numpy as np
-from spreadpy.disease import Disease, ChangeState
+from spreadpy.disease import Disease
+from spreadpy.special_events import ChangeState
 from spreadpy.basedesim import Event
 
 class SusceptibleToExposed(ChangeState):
@@ -135,9 +136,8 @@ class Covid(Disease):
 
     # TODO: #6 states could be a class attribute instead of object
 
-    def __init__(self, simulator, attributes):
-        super().__init__('covid', attributes)
-        self.simulator = simulator
+    def __init__(self, simulator, attributes, stream):
+        super().__init__('covid', simulator, attributes, stream)
         self['states'] = {'susceptible': 0,
                           'exposed': 1,
                           'presymptomatic': 2,
@@ -150,7 +150,7 @@ class Covid(Disease):
                                      self['states']['symptomatic'],
                                      self['states']['asymptomatic']]
         self['infection_prob'] = attributes['infection_prob']
-        self.stream = attributes['stream']
+        ## self.stream = attributes['stream']
         ImportCases(0, self.simulator, attributes['initial_cases'])  # TODO: #12 implement how to import cases
 
     def progression(self, population):
@@ -164,7 +164,7 @@ class Covid(Disease):
 
     def update_transmission(self, population, edge_seq, vertex_seq):
         '''
-        Update transmission considers all interventions ?
+        Update transmission must consider all interventions
         '''
         # TODO: #1 determine which factors affect transmission (masking, quarantine, vaccination)
         def masking_prob(i, j):

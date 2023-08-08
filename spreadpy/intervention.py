@@ -1,5 +1,4 @@
 from . import Event
-import numpy as np
 
 # TODO: #14 Simulator must initialize the required attributes 'masking', 'quarantine'
 

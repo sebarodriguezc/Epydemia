@@ -20,9 +20,12 @@ class Network():
         self.layers_names.append(layer_name)
 
     def add_layer(self, layer_name, how='random', **kwargs):
-        if how == 'random':
+        if how == 'barabasi':
             self[layer_name] = Layer(name=layer_name,
                                      graph=ig.Graph.Barabasi(**kwargs))
+        elif how == 'erdos_renyi':
+            self[layer_name] = Layer(name=layer_name,
+                                     graph=ig.Graph.Erdos_Renyi(**kwargs))
 
     def activate_layer(self, layer_name):
         assert(layer_name in self.layers_names)

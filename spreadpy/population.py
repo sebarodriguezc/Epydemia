@@ -17,16 +17,16 @@ class Population(SelfObject):
         # TODO: #7 implemente ability to initialize from file.
         super().__init__(attributes=dict())
         self.network = Network()
-        self.population_size = population_size
+        self.size = population_size
         self.diseases = {}
         self._init_characteristics()
 
     def _init_characteristics(self):
-        self['masking'] = np.zeros(self.population_size)
-        self['quarantine'] = np.zeros(self.population_size)
+        self['masking'] = np.zeros(self.size)
+        self['quarantine'] = np.zeros(self.size)
     
     def add_attribute(self, attribute_name, values):
-        assert(len(values) == self.population_size)
+        assert(len(values) == self.size)
         self[attribute_name] = values
 
     def introduce_disease(self, disease, states_seed=None, vaccine_seed=None):
@@ -40,17 +40,17 @@ class Population(SelfObject):
 
         if isinstance(states_seed, type(None)):
             self[disease.name]['states'] = np.full(
-                self.population_size, disease['states']['susceptible'])
+                self.size, disease['states']['susceptible'])
         else:
-            assert(len(states_seed) == self.population_size)
+            assert(len(states_seed) == self.size)
             self[disease.name]['states'] = states_seed
 
         if isinstance(vaccine_seed, type(None)):
             self[disease.name]['vaccine'] = np.full(
-                self.population_size,
+                self.size,
                 VACCINE_STATES[disease.name]['not vaccinated'])
         else:
-            assert(len(vaccine_seed) == self.population_size)
+            assert(len(vaccine_seed) == self.size)
             self[disease.name]['states'] = vaccine_seed
 
         for layer_name in self.network.layers.keys():  # Add probability

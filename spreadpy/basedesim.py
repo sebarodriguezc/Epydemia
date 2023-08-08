@@ -131,8 +131,7 @@ if __name__ == '__main__':
 
         def do(self):
             print('Hello {}'.format(self.time))
-            
-    
+
     sim = Simulator()
     e1 = Eventz(1, sim)
     e2 = Eventz(5, sim)
