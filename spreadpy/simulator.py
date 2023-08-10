@@ -1,5 +1,4 @@
 from . import Event, Simulator, Stream
-from . import Step
 from . import Population
 from . import Intervention
 from . import Disease
@@ -28,9 +27,8 @@ class AgentBasedSim(Simulator):
         self.step.initialize(self)
         super().run(self.stop_time)
 
-    def create_population(self, how=None,
+    def create_population(self, how='basic',
                               population_size=None,
-                              avg_contacts_per_day=20,
                               network_seed=2048,
                               population_seed=3069,
                               pop_attributes=None,
@@ -41,7 +39,9 @@ class AgentBasedSim(Simulator):
         # where to alocate avg_contacts_per_day population or sim.
         random.seed(network_seed)  # igraph seed
         stream = Stream(population_seed)
-        if how == 'from_arrays':
+        if how == 'basic':
+            self.population = Population(population_size)
+        elif how == 'from_arrays':
             assert(isinstance(pop_attributes, dict))
             population_size = len(pop_attributes.items()[0][1])
             try:
@@ -60,8 +60,6 @@ class AgentBasedSim(Simulator):
                 filename, population_size, stream)
             for key, value in pop_attributes.items():
                 self.population.add_attribute(key, value)
-        elif how == 'basic':
-            self.population = Population(population_size)
         else:
             raise NotImplementedError('Method not implemented')
         
@@ -86,3 +84,18 @@ class AgentBasedSim(Simulator):
         if 'n' not in kwargs:
             kwargs['n'] = self.population.size
         self.population.network.add_layer(layer_name=layer_name, **kwargs)
+
+
+class Step(Event):
+
+    def __init__(self, time, simulator):
+        super().__init__(time, simulator)
+        self.time = time
+        self.simulator = simulator
+
+    def do(self):
+        pass
+    
+    @classmethod
+    def initialize(cls, simulator, *args, **kwargs):
+        pass

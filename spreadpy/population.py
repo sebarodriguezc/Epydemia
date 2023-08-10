@@ -54,7 +54,8 @@ class Population(SelfObject):
         for layer_name in self.network.layers.keys():
             self.network.add_attributes_edges(layer_name, disease.name,
                                               disease['infection_prob'])
-
+    
+    '''
     def __get_suceptible_prob(self, disease_name):
         def calc_prob(probs):
             return 1 - np.product([1-p for p in probs])
@@ -79,7 +80,8 @@ class Population(SelfObject):
 
         prob_infection = list(map(calc_prob, zip(*prob_infection)))
         return susceptibles, prob_infection
-    
+    '''
+
     def get_suceptible_prob(self, disease_name):
         def calc_prob(probs):
             return 1 - np.product([1-p for p in probs])
@@ -87,7 +89,7 @@ class Population(SelfObject):
         susceptibles = np.where(
             self[disease_name]['states']  ==
             self.diseases[disease_name]['states']['susceptible'])[0]
-        
+
         infected = np.where(
             np.isin(self[disease_name]['states'],
                     self.diseases[disease_name]['contagious_states']))[0]
@@ -132,7 +134,6 @@ class Population(SelfObject):
 
     def update_transmission_weights(self, disease_names=None,
                                     layer_names=None, target_vertex_seq=None):
-        # TODO: #3 implement that a subset of vertices can be updated.
         if isinstance(disease_names, type(None)):
             disease_names = self.diseases.keys()
         if isinstance(layer_names, type(None)):
@@ -146,7 +147,6 @@ class Population(SelfObject):
                 self.network.add_attributes_edges(layer_name,
                                                   disease_name, new_p,
                                                   edge_seq=[e.index for e in es])
-                # TODO: #10 The two lines above should be done in one function.
 
     def to_file(self, filename, var_names):
         variables = {}

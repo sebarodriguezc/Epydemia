@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     # Initialize model
     simulate_for = 20
-    pop_size = 200
+    pop_size = 50
     sim.create_population(
         how='proportion_file',
         population_size=pop_size,
@@ -34,12 +34,13 @@ if __name__ == '__main__':
     sim.population.add_attribute('pbc',  stream.rand(pop_size))
 
     # Create layers of network
-    sim.add_layer(layer_name='community', how='barabasi', n=pop_size, m=10)
+    # sim.add_layer(layer_name='community', how='barabasi', n=pop_size, m=10)
+    sim.add_layer(layer_name='community', how='erdos_renyi', n=pop_size, p=0.05)
 
     # Define disease
-    covid_seed = stream.choice([0, 5], size=pop_size, p=[0.5, 0.5])
+    covid_seed = stream.choice([0, 5], size=pop_size, p=[1, 0])
     sim.add_disease(Covid, states_seed=covid_seed,
-                    disease_kwargs={'infection_prob': 0.01,
+                    disease_kwargs={'infection_prob': 0.1,
                                     'initial_cases': 5,
                                     'stream': sp.Stream(65347)})
 
@@ -127,9 +128,14 @@ if __name__ == '__main__':
               'Recovered', 'Hospitalized']
     colors = [color_dict[i] for i in sim.population['covid']['states']]
 
+
     fig, ax = plt.subplots(figsize=(10, 10))
     sim.population.plot_network(ax, 'community', layout='kk',
                                 vertex_color=colors, vertex_size=0.5)  # TODO: #15 Plotting function should be part of sim object
+    handles = ax.get_children()
+    for i in range(pop_size):
+        center = handles[i].get_center()
+        ax.text(center[0], center[1], str(i), ha='center', va='center')
     for i in [0, 1, 2, 5, 6]:
         ax.scatter([], [], s=100, c=color_dict[i], edgecolor='gray',
                    label=labels[i])
@@ -148,8 +154,18 @@ if __name__ == '__main__':
     y = 1 / (1 + np.exp(-10*(x-0.4)))
     plt.plot(x, y)
 
+    # %%
+    fig, ax = plt.subplots(figsize=(8,8))
+    graph = sim.population.network['community'].graph
+    layout = graph.layout('kk')
+    color_dict = {0: 'white', 1: 'orange', 2: 'red', 3: 'red', 4: 'red',
+                  5: 'green', 6: 'purple', 7: 'k'}
+    colors = [[color_dict[i] for i in states] for states in sim.collector['states']]
 
-
+    plot_kwargs = {'edge_width': 0.3, 'vertex_size': 0.5}
+    sp.plot.animate(fig, ax, graph, colors, layout, save_as = 'ani.gif',
+                    frames=simulate_for,
+                    fps=1, interval=1000, plot_kwargs=plot_kwargs)
 
 
 # %%

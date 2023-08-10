@@ -19,13 +19,25 @@ class Network():
         self.layers[layer_name] = new_layer
         self.layers_names.append(layer_name)
 
-    def add_layer(self, layer_name, how='random', **kwargs):
+    def add_layer(self, layer_name, how='barabasi', **kwargs):
         if how == 'barabasi':
             self[layer_name] = Layer(name=layer_name,
                                      graph=ig.Graph.Barabasi(**kwargs))
         elif how == 'erdos_renyi':
             self[layer_name] = Layer(name=layer_name,
                                      graph=ig.Graph.Erdos_Renyi(**kwargs))
+        elif how == 'k_regular':
+            self[layer_name] = Layer(name=layer_name,
+                                     graph=ig.K_Regular(**kwargs))
+        elif how == 'graph':
+            try:
+                self[layer_name] = Layer(name=layer_name,
+                                         graph=kwargs['graph'])
+            except KeyError:
+                raise ValueError(
+                    "Must pass an igraph.Graph using the 'graph' argument")
+        else:
+            raise NotImplementedError('Method not implemented')
 
     def activate_layer(self, layer_name):
         assert(layer_name in self.layers_names)

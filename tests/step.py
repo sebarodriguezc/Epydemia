@@ -31,6 +31,9 @@ class DailyStep(Step):
             self.simulator.collector.collect(name, stat)
         self.simulator.collector.collect(
             'masking', (self.simulator.population['masking'] == 1).sum())
+        self.simulator.collector.collect(
+            'states', self.simulator.population['covid']['states'].copy()
+            )
         try:
             self.simulator.collector.collect(
                 'sn', self.simulator.population['sn'].mean())
