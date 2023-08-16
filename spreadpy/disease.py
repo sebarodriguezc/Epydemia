@@ -1,7 +1,7 @@
-from . import SelfObject
+from . import SubsObject
 from abc import ABC, abstractmethod
 
-class Disease(SelfObject, ABC):
+class Disease(SubsObject, ABC):
     ''' docstring '''
 
     def __init__(self, name, simulator, stream, infection_prob,

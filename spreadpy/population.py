@@ -1,4 +1,4 @@
-from . import SelfObject
+from . import SubsObject
 from . import Disease
 from . import Network
 #from . import VACCINE_STATES
@@ -6,7 +6,7 @@ from . import dict_to_csv
 import numpy as np
 import igraph as ig
 
-class Population(SelfObject):
+class Population(SubsObject):
     ''' docstring ''' 
     # Possible create vertices first and then create contact layers?
     # Network main or not will depend if there are different contact layers or not
