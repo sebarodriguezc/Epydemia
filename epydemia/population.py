@@ -1,5 +1,5 @@
 from . import SubsObject
-from . import Disease
+## from . import Disease
 from . import Network
 #from . import VACCINE_STATES
 from . import dict_to_csv
@@ -30,11 +30,15 @@ class Population(SubsObject):
 
     def introduce_disease(self, disease, states_seed=None):
         '''Must be called when population has been created'''
+
+        
+        '''
         try:
             assert issubclass(type(disease), Disease)
         except AssertionError:
             raise ValueError('Must be a Disease object')
-
+        '''
+        
         # Create data structure
         self.diseases[disease.name] = disease
         self[disease.name] = {}

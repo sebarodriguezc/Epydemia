@@ -1,7 +1,7 @@
 import sys
 sys.path.append('../')
 import numpy as np
-from spreadpy import Step
+from epydemia import Step
 
 class DailyStep(Step):
     ''' Disease progression '''

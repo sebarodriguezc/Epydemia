@@ -2,8 +2,8 @@
 import sys
 sys.path.append('../')
 import importlib
-import spreadpy as sp
-importlib.reload(sp)
+import epydemia as epy
+importlib.reload(epy)
 import matplotlib.pyplot as plt
 import time
 import numpy as np
@@ -13,7 +13,7 @@ from step import DailyStep
 
 #%%
 if __name__ == '__main__':
-    sim = sp.AgentBasedSim(DailyStep)
+    sim = epy.AgentBasedSim(DailyStep)
 
     # Initialize model
     simulate_for = 20
@@ -25,7 +25,7 @@ if __name__ == '__main__':
         population_seed=10753,
         filename='../data/population.csv')
 
-    stream = sp.Stream(seed=3654)
+    stream = epy.Stream(seed=3654)
     sim.population.add_attribute('w1', stream.rand(pop_size))   # Susceptibility 
     sim.population.add_attribute('w2', stream.uniform(0, 1 - sim.population['w1'], size=pop_size))   # Severity
     sim.population.add_attribute('w3', stream.uniform(0, 1 - sim.population['w1'] - sim.population['w2'], size=pop_size))  # Subjective norm
@@ -42,10 +42,10 @@ if __name__ == '__main__':
     sim.add_disease(Covid, states_seed=covid_seed,
                     disease_kwargs={'infection_prob': 0.1,
                                     'initial_cases': 5,
-                                    'stream': sp.Stream(65347)})
+                                    'stream': epy.Stream(65347)})
 
     # Interventions
-    stream = sp.Stream(seed=1023)
+    stream = epy.Stream(seed=1023)
     initial_masking = 0.2
     sim.add_intervention(Masking, 3, func=lambda x: x,
                          args=stream.choice([0, 1],
@@ -56,10 +56,10 @@ if __name__ == '__main__':
         sim.add_intervention(MaskingBehavior, t,
                              stream=stream)
     sim.add_intervention(Vaccination, 50, disease_name='covid',
-                         target_func=sp.vaccinate_age, stream=stream,
+                         target_func=epy.vaccinate_age, stream=stream,
                          age_target=(50, 65), coverage=0.6)
     sim.add_intervention(Vaccination, 55, disease_name='covid',
-                         target_func=sp.vaccinate_age, stream=stream,
+                         target_func=epy.vaccinate_age, stream=stream,
                          age_target=(50, 65), coverage=0.6)
     
     # Import cases
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     colors = [[color_dict[i] for i in states] for states in sim.collector['states']]
 
     plot_kwargs = {'edge_width': 0.3, 'vertex_size': 0.5}
-    sp.plot.animate(fig, ax, graph, colors, layout, save_as = 'ani.gif',
+    epy.plot.animate(fig, ax, graph, colors, layout, save_as = 'ani.gif',
                     frames=simulate_for,
                     fps=1, interval=1000, plot_kwargs=plot_kwargs)
 

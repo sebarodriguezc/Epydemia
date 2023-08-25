@@ -1,9 +1,9 @@
 import sys
 sys.path.append('../')
 import numpy as np
-from spreadpy.disease import Disease
-from spreadpy.special_events import ChangeState
-from spreadpy.basedesim import Event
+from epydemia.disease import Disease
+from epydemia.special_events import ChangeState
+from epydemia.basedesim import Event
 
 class SusceptibleToExposed(ChangeState):
 

@@ -1,8 +1,8 @@
 import sys
 sys.path.append('../')
 import numpy as np
-from spreadpy.intervention import Intervention
-from spreadpy.parameters import MASKING_STATES
+from epydemia.intervention import Intervention
+from epydemia.parameters import MASKING_STATES
 from covid import SusceptibleToRecovered
 import time
 

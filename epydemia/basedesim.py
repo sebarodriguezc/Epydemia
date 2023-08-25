@@ -1,18 +1,19 @@
 from abc import ABC, abstractmethod
 import numpy as np
 
-class SubsObject():
+
+class SubsObject:
     """Definition of a subscriptable object to allow access to attributes
     using labels.
     """
     def __init__(self, attributes=None):
         """
         Args:
-            attributes (dict, optional): dictionary with attributes. Defaults to None.
+            attributes (dict, optional): dictionary with attributes. Defaults
+            to None.
         """
         self.attributes = {}
         if not isinstance(attributes, type(None)):
-            assert isinstance(attributes, dict)
             for key, value in attributes.items():
                 self.__setitem__(key, value)
 
@@ -38,8 +39,8 @@ class SubsObject():
 
 
 class Event(ABC):
-    """Abstract event class to use in a discrete simulation framework. User-defined events must
-    inherit from this class.
+    """Abstract event class to use in a discrete simulation framework.
+    User-defined events must inherit from this class.
 
     Args:
         ABC (class): implementation of python's abstract class
@@ -60,38 +61,46 @@ class Event(ABC):
         simulator._add_event(self)
 
     def __lt__(self, other_event):
-        """Override of magic method to allow comparison of events using their execution time.
+        """Override of magic method to allow comparison of events using
+        their execution time.
 
         Args:
             other_event (Event.object): event to compare against.
 
         Returns:
-            boolean: If current event happens earlier than event compared against.
+            boolean: If current event happens earlier than event
+            compared against.
         """
         return self.time < other_event.time
 
     def __gt__(self, other):
-        """Override of magic method to allow comparison of events using their execution time.
+        """Override of magic method to allow comparison of events using
+        their execution time.
 
         Args:
             other_event (Event.object): event to compare against.
 
         Returns:
-            boolean: If current event happens later than event compared against.
+            boolean: If current event happens later than event
+            compared against.
         """
         return self.time > other.time
 
     @abstractmethod
     def do(self):
-        """ Method that defines what to do when event is executed. Must be implemented.
+        """ Method that defines what to do when event is executed.
+        Must be implemented.
+
+        Returns:
+            None.
         """
         raise NotImplementedError
 
 
 class Scheduler:
-    """ Class that creates an event scheduler, which goal is to correctly handle events execution.
-    Events are stored and sorted in a list, and are popped from it when events are schedulled to 
-    be exectued. 
+    """ Class that creates an event scheduler, which goal is to correctly
+    handle events execution. Events are stored and sorted in a list, and
+    are popped from it when events are schedulled to be exectued.
     """
 
     def __init__(self):
@@ -120,8 +129,8 @@ class Scheduler:
         self.events_list.insert(i, event)
 
     def cancel(self, event):
-        """ Method used to cancel an event from the scheduler. Object is removed
-        from the events list.
+        """ Method used to cancel an event from the scheduler. Object is
+        removed from the events list.
 
         Args:
             event (Event.object): event to be cancelled.
@@ -134,7 +143,8 @@ class Scheduler:
         self.events_list = list()
 
     def size(self):
-        """ Method used to determine the number of events present at the event_list.
+        """ Method used to determine the number of events present at
+        the event_list.
 
         Returns:
             int: number of events yet to be executed
@@ -170,8 +180,8 @@ class Scheduler:
         """ Method used to find all events that meet a condition.
 
         Args:
-            condition (callable function): callable function that accepts an event object 
-                                           as argument. Must return a boolean.
+            condition (callable function): callable function that accepts
+            an event object as argument. Must return a boolean.
 
         Returns:
             list: list of events that meet the condition
@@ -179,29 +189,33 @@ class Scheduler:
         try:
             assert(callable(condition))
         except AssertionError:
-            raise ValueError('Condition function must be a callable function.')
+            raise ValueError('Condition must be a callable function.')
         return [e for e in self.events_list if condition(e)]
 
 
 class Simulator(ABC):
-    """ Abstract class that governs the discrete event simulation framework. It allocates
-        the events scheduler and must be used as main handler of the simulation.
+    """ Abstract class that governs the discrete event simulation framework.
+    It allocates the events scheduler and must be used as main handler
+    of the simulation.
     """
+
     def __init__(self):
-        """ A simulator object is initialized with an empty scheduler and with a current
-        simulation time of 0.
+        """ A simulator object is initialized with an empty scheduler and
+        with a current simulation time of 0.
         """
         self.events = Scheduler()
         self.sim_time = 0
 
     def run(self, stop_time=float('inf')):
-        """ Main method used to run a simulation. It is used to execute all events until
+        """ Main method used to run a simulation. It is used to execute all
+        events until:
         i) a specified stopping time or
         ii) all events have been executed.
-        The 
+        The current simulation time is updated upon execution of events.
 
         Args:
-            stop_time (float, optional): simulation stopping time. Defaults to float('inf').
+            stop_time (float, optional): simulation stopping time.
+                                         Defaults to float('inf').
         """
         self.sim_time = 0
         while (self.events.size() > 0):
@@ -222,8 +236,9 @@ class Simulator(ABC):
         return self.sim_time
 
     def _add_event(self, event):
-        """ Internal method used to schedule an event when this object is created. The 
-        object is added to the events list, which in turn is updated being sorted.
+        """ Internal method used to schedule an event when this object
+        is created. The object is added to the events list, which in
+        turn is updated being sorted.
         See the Event abstract class __init__ function.
 
         Args:
