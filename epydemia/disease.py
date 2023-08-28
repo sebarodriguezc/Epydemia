@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 class Disease(SubsObject, ABC):
     """ Abstract class used to define diseases. Disease classes are meant
     to hold all the information relative to infectious diseases. It is
-    required that the user defines at least the disease progression states
+    required that the user defines at least the disease progression states 
     and probability of infection through the network (which it is assumed to be
     a daily probability of someone getting infected by being in contact with
     a single infected agent. A different probability definition must go along
@@ -18,21 +18,25 @@ class Disease(SubsObject, ABC):
         ABC (class): Python's built-in abstract class.
     """
     def __init__(self, name, simulator, stream,
-                 infection_prob, **attributes):
-        """_summary_
+                 infection_prob, states={'susceptible': 0},
+                 **attributes):
+        """ Method that creates a disease object.
 
         Args:
             name (str): disease label
             simulator (AgentBasedSim): simulator object
-            stream (Stream): stream object for pseudo-random numbers generation 
+            stream (Stream): stream object for pseudo-random numbers generation
             infection_prob (float): probability of infection (as defined by user)
+            states (dict): ditionary defining all possible disease states, where
+                           keys are state labels (str) and values are numeric (int)
+                           references to states.
         """
         super().__init__(attributes)
         self.name = name
         self.simulator = simulator
         self.stream = stream
         self['infection_prob'] = infection_prob
-        self['states'] = {}
+        self['states'] = states
 
     @abstractmethod
     def progression(self):

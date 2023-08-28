@@ -47,7 +47,7 @@ class DateToSim:
             return difference.total_seconds()
         else:
             raise NotImplementedError
-
+        
 
 def from_file_proportion(filename, sample_size, stream, prop_col='proportion'):
     df = pd.read_csv(filename)

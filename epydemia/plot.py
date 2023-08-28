@@ -1,6 +1,4 @@
 import matplotlib.pyplot as plt
-
-
 import matplotlib.animation as animation
 import igraph as ig
 
@@ -29,3 +27,6 @@ def animate(fig, ax, graph, vertex_colors, graph_layout,
                                   frames, interval=interval,
                                   blit=blit, **animation_kwargs)
     ani.save(save_as, writer=writer, fps=fps, **saving_kwargs)
+
+def plot_network(self, ax, layer, **plot_kwargs):
+    ig.plot(self.network[layer].graph, target=ax, **plot_kwargs)
