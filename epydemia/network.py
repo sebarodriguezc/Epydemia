@@ -16,7 +16,7 @@ class Network:
     probability of infection (i.e. changing probability to zero when
     agent is in quarantine).
 
-    The randomness is seeded using the python's random module.
+    The randomness is seeded using the Python's random module.
     """
     random.seed(42)
 
@@ -217,4 +217,4 @@ class Layer():
         Returns:
             neighborhood: list with neighbors for each vertex. 
         """
-        return self.graph.neighborhood(vertex_seq, **kwargs)  # check mode, should be undirected graph.
+        return self.graph.neighborhood(vertex_seq, **kwargs)

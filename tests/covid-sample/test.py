@@ -1,6 +1,6 @@
 #%%
 import sys
-sys.path.append('../')
+sys.path.append('../../')
 import importlib
 import epydemia as epy
 importlib.reload(epy)
@@ -23,8 +23,9 @@ if __name__ == '__main__':
         population_size=pop_size,
         network_seed=1024,
         population_seed=10753,
-        filename='../data/population.csv')
+        filename='../../data/population.csv')
 
+    # Behavioral parameters
     stream = epy.Stream(seed=3654)
     sim.population.add_attribute('w1', stream.rand(pop_size))   # Susceptibility 
     sim.population.add_attribute('w2', stream.uniform(0, 1 - sim.population['w1'], size=pop_size))   # Severity
@@ -32,6 +33,10 @@ if __name__ == '__main__':
     sim.population.add_attribute('w4', 1 - sim.population['w1'] - sim.population['w2'] - sim.population['w3'])  # PBC
     sim.population.add_attribute('susceptibility',  np.full(pop_size, 0.2))
     sim.population.add_attribute('pbc',  stream.rand(pop_size))
+
+    # Masking parameters
+    sim.population.add_attribute('masking', np.zeros(pop_size))
+    sim.population.add_attribute('vaccination', np.zeros(pop_size))
 
     # Create layers of network
     # sim.add_layer(layer_name='community', how='barabasi', n=pop_size, m=10)
@@ -74,7 +79,7 @@ if __name__ == '__main__':
     #%%
     plt.plot(sim.collector['S'], label='S')
     plt.plot(sim.collector['E'], label='E')
-    plt.plot(sim.collector['Sy']+sim.collector['A']+sim.collector['P'],
+    plt.plot(np.sum([sim.collector['Sy'],sim.collector['A'],sim.collector['P']], axis=0),
              label='I')
     plt.plot(sim.collector['R'], label='R')
     plt.plot(sim.collector['H'], label='H')
@@ -89,7 +94,7 @@ if __name__ == '__main__':
     color = 'tab:blue'
     ax1.set_xlabel('Days')
     ax1.set_ylabel('Masking %', color=color)
-    ax1.plot(sim.collector['masking']/pop_size, color=color, label='Masking')
+    ax1.plot(np.array(sim.collector['masking'])/pop_size, color=color, label='Masking')
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.spines[['top']].set_visible(False)
     ax1.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
