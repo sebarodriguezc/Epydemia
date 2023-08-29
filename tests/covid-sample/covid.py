@@ -156,22 +156,12 @@ class Covid(Disease):
         'vaccinated': 1}
 
     def __init__(self, simulator, stream, infection_prob=0.5,
-                 initial_cases=5, vaccine_seed=None, **kwargs):
-        super().__init__('covid', simulator, stream, infection_prob, **kwargs)
-        self['states'] = {'susceptible': 0,
-                          'exposed': 1,
-                          'presymptomatic': 2,
-                          'symptomatic': 3,
-                          'asymptomatic': 4,
-                          'recovered': 5,
-                          'hospitalized': 6,
-                          'death': 7}
-        self['contagious_states'] = [self['states']['presymptomatic'],
-                                     self['states']['symptomatic'],
-                                     self['states']['asymptomatic']]
-        self['infection_prob'] = infection_prob
+                 initial_cases=5, vaccine_seed=None,
+                 states={0: 'susceptible'}, **kwargs):
+        super().__init__('covid', simulator, stream, infection_prob,
+                         states=states, **kwargs)
         self['vaccine_seed'] = vaccine_seed
-        ImportCases(0, self.simulator, initial_cases)  # TODO: #12 implement how to import cases
+        self['initial_cases'] = initial_cases
 
     def initialize(self, population):
         if isinstance(self['vaccine_seed'], type(None)):
@@ -181,10 +171,12 @@ class Covid(Disease):
         else:
             assert(len(self['vaccine_seed']) == population.size)
             population[self.name]['states'] = self['vaccine_seed']
+        ImportCases(0, self.simulator, self['initial_cases'])
 
     def infect(self, population):
-        susceptibles, probability = population.get_suceptible_prob(
-            'covid')
+        susceptibles, probability = population.get_transmission_probabilities(
+            'covid', susceptible_states=['susceptible'],
+            infectee_states=['presymptomatic', 'symptomatic', 'asymptomatic'])
         exposed = susceptibles[np.where(
             self.stream.random(len(probability)) <= probability)]
         for person in exposed:

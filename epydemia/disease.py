@@ -16,7 +16,7 @@ class Disease(SubsObject, ABC):
         ABC (class): Python's built-in abstract class.
     """
     def __init__(self, name, simulator, stream,
-                 infection_prob, states={'susceptible': 0},
+                 infection_prob, states,
                  **attributes):
         """ Method that creates a disease object.
 

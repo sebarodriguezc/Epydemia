@@ -43,11 +43,20 @@ if __name__ == '__main__':
     sim.add_layer(layer_name='community', how='erdos_renyi', n=pop_size, p=0.05)
 
     # Define disease
+    states = {'susceptible': 0,
+            'exposed': 1,
+            'presymptomatic': 2,
+            'symptomatic': 3,
+            'asymptomatic': 4,
+            'recovered': 5,
+            'hospitalized': 6,
+            'death': 7}
     covid_seed = stream.choice([0, 5], size=pop_size, p=[1, 0])
     sim.add_disease(Covid, states_seed=covid_seed,
                     disease_kwargs={'infection_prob': 0.1,
                                     'initial_cases': 5,
-                                    'stream': epy.Stream(65347)})
+                                    'stream': epy.Stream(65347),
+                                    'states':states})
 
     # Interventions
     stream = epy.Stream(seed=1023)
