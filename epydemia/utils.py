@@ -3,6 +3,7 @@ import numpy as np
 from . import MASKING_STATES
 from datetime import datetime
 
+
 class DateToSim:
     FORMAT = '%m/%d/%y'
     START = datetime.strptime('01/01/2020', FORMAT)
@@ -47,7 +48,7 @@ class DateToSim:
             return difference.total_seconds()
         else:
             raise NotImplementedError
-        
+
 
 def from_file_proportion(filename, sample_size, stream, prop_col='proportion'):
     df = pd.read_csv(filename)
@@ -73,4 +74,3 @@ def vaccinate_age(population, stream, age_target, coverage):
                     (population['age'] <= age_target[1]))[0]
     return stream.choice(idx_, size=round(int(len(idx_)*coverage)),
                          replace=False)
-

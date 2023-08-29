@@ -58,7 +58,8 @@ class Event(ABC):
                                           will be executed.
         """
         self.time = time
-        simulator._add_event(self)
+        self.simulator = simulator
+        self.simulator._add_event(self)
 
     def __lt__(self, other_event):
         """Override of magic method to allow comparison of events using
