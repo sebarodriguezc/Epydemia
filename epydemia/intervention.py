@@ -24,7 +24,6 @@ class Intervention(Event):
             simulator (_type_): _description_
         """
         super().__init__(time, simulator)
-        self.simulator = simulator
         self.kwargs = kwargs
 
     def do(self):

@@ -1,8 +1,6 @@
-from . import SubsObject, Stream
-import typing
-if typing.TYPE_CHECKING:
-    from . import AgentBasedSim
+from . import SubsObject
 from abc import ABC, abstractmethod
+
 
 class Disease(SubsObject, ABC):
     """ Abstract class used to define diseases. Disease classes are meant
@@ -26,10 +24,11 @@ class Disease(SubsObject, ABC):
             name (str): disease label
             simulator (AgentBasedSim): simulator object
             stream (Stream): stream object for pseudo-random numbers generation
-            infection_prob (float): probability of infection (as defined by user)
-            states (dict): ditionary defining all possible disease states, where
-                           keys are state labels (str) and values are numeric (int)
-                           references to states.
+            infection_prob (float): probability of infection (as defined
+                                    by user)
+            states (dict): ditionary defining all possible disease states,
+                           where keys are state labels (str) and values are
+                           numeric (int) references to states.
         """
         super().__init__(attributes)
         self.name = name
@@ -39,7 +38,7 @@ class Disease(SubsObject, ABC):
         self['states'] = states
 
     @abstractmethod
-    def progression(self):
+    def infect(self):
         """ Method used to trigger the progression of the disease on a subset
         of susceptible population. The key idea is that this method handles
         what happens when a new infection occurs. For example, in a daily
@@ -56,7 +55,7 @@ class Disease(SubsObject, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update_transmission(self, population, vertex_pair_seq):
+    def compute_transmission_probabilities(self, population, vertex_pair_seq):
         """ Method used to update the transmission probability throughout
         the network. Must return an iterable sequence with the infection
         probability corresponding to each vertex pair.
@@ -80,20 +79,13 @@ class Disease(SubsObject, ABC):
 
     @abstractmethod
     def initialize(self, population):
-        raise NotImplementedError
-
-
-        """ To initialize a disease, a name must be given which will be used as
-        label for all purposes (such as accessing the population's disease
-        states). A simulator object is also required to access all other
-        objects in the simulation.
+        """ Method used to conduct any operations when initializing 
+        the simulation.
 
         Args:
-            name (str): _description_
-            simulator (_type_): _description_
-            stream (_type_): _description_
-            infection_prob (_type_): _description_
+            population (Population object): population object.
 
-        Returns:
-            None
+        Raises:
+            NotImplementedError: _description_
         """
+        raise NotImplementedError

@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 class DateToSim:
-    FORMAT = '%m/%d/%y'
+    FORMAT = '%m/%d/%Y'
     START = datetime.strptime('01/01/2020', FORMAT)
 
     @classmethod

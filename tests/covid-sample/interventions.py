@@ -14,7 +14,7 @@ class Masking(Intervention):
             print('Masking intervention')
         self.simulator.population['masking'] = self.kwargs[
             'func'](self.kwargs['args'])
-        self.simulator.population.update_transmission_weights()
+        self.simulator.population.update_transmission_probabilities()
 
 
 class MaskingBehavior(Intervention):
@@ -22,7 +22,6 @@ class MaskingBehavior(Intervention):
 
     def __init__(self, time, simulator, stream):
         super().__init__(time, simulator)
-        self.simulator = simulator
         self.stream = stream
 
     def do(self):
@@ -96,7 +95,7 @@ class MaskingBehavior(Intervention):
             pop['masking'] == MASKING_STATES['masking'],
             pop['pbc'] + (1 - pop['pbc'])*0.1,
             pop['pbc'] - (1 - pop['pbc'])*0.1)
-        pop.update_transmission_weights()
+        pop.update_transmission_probabilities()
 
 
 class Quarantine(Intervention):
@@ -105,7 +104,6 @@ class Quarantine(Intervention):
     def __init__(self, time, simulator, idx, length=5):
         # TODO: #13 Rethink how interventions are defined in terms of args
         super().__init__(time, simulator)
-        self.simulator = simulator
         self.idx = idx
         self.length = length
 
@@ -117,7 +115,7 @@ class Quarantine(Intervention):
             self.simulator.population['quarantine'] = np.zeros(
                 self.simulator.population.size)
         self.simulator.population['quarantine'][self.idx] = 1
-        self.simulator.population.update_transmission_weights()
+        self.simulator.population.update_transmission_probabilities()
         EndQuarantine(self.simulator.now() + self.length, self.simulator,
                       self.idx)
 
@@ -127,12 +125,11 @@ class EndQuarantine(Intervention):
     def __init__(self, time, simulator, idx):
         # TODO: #13 Rethink how interventions are defined in terms of args
         super().__init__(time, simulator)
-        self.simulator = simulator
         self.idx = idx
 
     def do(self):
         self.simulator.population['quarantine'][self.idx] = 0
-        self.simulator.population.update_transmission_weights()
+        self.simulator.population.update_transmission_probabilities()
 
 
 class Vaccination(Intervention):
@@ -142,7 +139,6 @@ class Vaccination(Intervention):
     def __init__(self, time, simulator, disease_name,
                  target_func=None, **target_kwargs):
         super().__init__(time + Vaccination.VACCINE_DELAY, simulator)
-        self.simulator = simulator
         self.disease_name = disease_name
         self.target_kwargs = target_kwargs
         self.target_func = target_func

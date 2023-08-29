@@ -182,7 +182,7 @@ class Covid(Disease):
             assert(len(self['vaccine_seed']) == population.size)
             population[self.name]['states'] = self['vaccine_seed']
 
-    def progression(self, population):
+    def infect(self, population):
         susceptibles, probability = population.get_suceptible_prob(
             'covid')
         exposed = susceptibles[np.where(
@@ -191,7 +191,7 @@ class Covid(Disease):
             SusceptibleToExposed(self.simulator.now(),
                                  self.simulator, person)
 
-    def update_transmission(self, population, edge_seq, vertex_pair_seq):
+    def compute_transmission_probabilities(self, population, vertex_pair_seq):
         '''
         Update transmission must consider all interventions
         '''

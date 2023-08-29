@@ -1,10 +1,8 @@
 from . import SubsObject
 from . import Disease
 from . import Network
-#from . import VACCINE_STATES
 from . import dict_to_csv
 import numpy as np
-import igraph as ig
 
 class Population(SubsObject):
     """ This class is used to represent the population of agents. Agents
@@ -37,15 +35,7 @@ class Population(SubsObject):
         self.network = Network()
         self.size = population_size
         self.diseases = {}
-        self._init_characteristics()
 
-    def _init_characteristics(self):
-        """ Method used to initialize basic characteristics of the
-        population.
-        """
-        self['masking'] = np.zeros(self.size)
-        self['quarantine'] = np.zeros(self.size)
-    
     def add_attribute(self, attribute_name, values):
         """ Method used to add an attribute to the population.
         Attribute values must be given as a numpy array of length
@@ -59,8 +49,8 @@ class Population(SubsObject):
             assert(len(values) == self.size)
         except AssertionError:
             raise IndexError(
-                "Array size ({}) doesn't match population size ({})".format(
-                values.shape, self.size))
+                "Array size ({}) doesn't match population size ({})"
+                .format(values.shape, self.size))
         self[attribute_name] = values
 
     def introduce_disease(self, disease, states_seed=None,
@@ -113,7 +103,7 @@ class Population(SubsObject):
         for layer_name in self.network.layers.keys():
             self.network.add_attributes_edges(layer_name, disease.name,
                                               disease['infection_prob'])
-    
+
     '''
     def __get_suceptible_prob(self, disease_name):
         def calc_prob(probs):
@@ -210,19 +200,22 @@ class Population(SubsObject):
         self[disease_name]['states'][idx] = self.diseases[
             disease_name]['states'][state_name]
 
-    def update_transmission_weights(self, disease_names=None,
-                                    layer_names=None, target_vertex_seq=None):
-        """ Method used to update the transmission probabilities in the Network.
-        Updates through the network are calculated based on each disease's
-        update_transmission methods.
-        It allows to the define a target based on a disease, layer or subset
-        of agents (through their vertex indices). If no target is given,
-        the method updates transmission weights for all diseases, layers and
-        agents.
+    def update_transmission_probabilities(self,
+                                        disease_names=None,
+                                        layer_names=None,
+                                        target_vertex_seq=None):
+        """ Method used to update the transmission probabilities in the
+        Network. Updates through the network are calculated based on each
+        disease's update_transmission methods. It allows to the define a
+        target based on a disease, layer or subset of agents (through their
+        vertex indices). If no target is given, the method updates
+        transmission weights for all diseases, layers and agents.
 
         Args:
-            disease_names (str, optional): name of the target disease. Defaults to None.
-            layer_names (str, optional): name of the target layer. Defaults to None.
+            disease_names (str, optional): name of the target disease.
+                                           Defaults to None.
+            layer_names (str, optional): name of the target layer.
+                                         Defaults to None.
             target_vertex_seq (list, optional): list of agents indices.
                                                 Defaults to None.
         """
@@ -233,13 +226,15 @@ class Population(SubsObject):
             layer_names = self.network.layers.keys()
 
         for layer_name in layer_names:
-            es, vs = self.network.get_edges(layer_name, target_vertex_seq)
+            es, es_vertex_ids = self.network.get_edges(layer_name,
+                                                       target_vertex_seq)
             for disease_name in disease_names:
-                new_p = self.diseases[disease_name].update_transmission(
-                    self, es, vs)  # TODO: #9 edges shouldn't be consider here
-                self.network.add_attributes_edges(layer_name,
-                                                  disease_name, new_p,
-                                                  edge_seq=[e.index for e in es])
+                new_p = self.diseases[
+                    disease_name].compute_transmission_probabilities(
+                    self, es_vertex_ids)
+                self.network.add_attributes_edges(
+                    layer_name, disease_name, new_p,
+                    edge_seq=[e.index for e in es])
 
     def to_file(self, filename, var_names):
         """ Saves population to a file. A list of variable names/labels is

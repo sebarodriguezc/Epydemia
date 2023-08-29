@@ -9,8 +9,6 @@ class DailyStep(Step):
 
     def __init__(self, time, simulator):
         super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
 
     @classmethod
     def initialize(cls, simulator):
@@ -21,7 +19,7 @@ class DailyStep(Step):
         if self.simulator.verbose:
             print('New day beginning {}'.format(self.time))
         for _, disease in self.simulator.population.diseases.items():
-            disease.progression(self.simulator.population)
+            disease.infect(self.simulator.population)
 
         # Stats collections here
         for i, name in zip(range(8),

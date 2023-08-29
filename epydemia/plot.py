@@ -16,7 +16,7 @@ def animate(fig, ax, graph, vertex_colors, graph_layout,
 
     graph_plot = ig.plot(graph, target=ax, layout=graph_layout,
                          vertex_color=vertex_colors[0], **plot_kwargs)
-    
+
     if add_id:
         handles = ax.get_children()
         for i in range(graph.vcount()):
@@ -28,5 +28,6 @@ def animate(fig, ax, graph, vertex_colors, graph_layout,
                                   blit=blit, **animation_kwargs)
     ani.save(save_as, writer=writer, fps=fps, **saving_kwargs)
 
-def plot_network(self, ax, layer, **plot_kwargs):
-    ig.plot(self.network[layer].graph, target=ax, **plot_kwargs)
+def plot_network(sim, ax, layer, **plot_kwargs):
+    ig.plot(sim.population.network[layer].graph, target=ax,
+            **plot_kwargs)

@@ -9,8 +9,6 @@ class SampleDailyStep(Step):
 
     def __init__(self, time, simulator):
         super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
 
     @classmethod
     def initialize(cls, simulator):
@@ -20,15 +18,13 @@ class SampleDailyStep(Step):
 
     def do(self):
         for _, disease in self.simulator.population.diseases.items():
-            disease.progression(self.simulator.population)
+            disease.infect(self.simulator.population)
 
 
 class ChangeState(Event):
 
     def __init__(self, time, simulator, idx):
         super().__init__(time, simulator)
-        self.time = time
-        self.simulator = simulator
         self.idx = idx
 
     def do(self):
