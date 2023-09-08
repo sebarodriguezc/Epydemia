@@ -1,5 +1,5 @@
-from . import Event
-
+from . import Event, Simulator
+from typing import Union
 
 class Intervention(Event):
     """ Class used to model intervention events such as beginning of
@@ -14,7 +14,8 @@ class Intervention(Event):
         Event (_type_): _description_
     """
 
-    def __init__(self, time, simulator, **kwargs):
+    def __init__(self, time: Union[int, float], simulator: Simulator,
+                 **kwargs):
         """ Intervention is initalized as an event requiring a time to be 
         executed and a simulator object. Kwargs are saved as a dict for used
         when executing event.

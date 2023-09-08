@@ -1,39 +1,39 @@
 from abc import ABC, abstractmethod
 import numpy as np
+from typing import Any, Union
 
 
 class SubsObject:
     """Definition of a subscriptable object to allow access to attributes
     using labels.
     """
-    def __init__(self, attributes=None):
+    def __init__(self, attributes: dict = {}):
         """
         Args:
-            attributes (dict, optional): dictionary with attributes. Defaults
-            to None.
+            attributes (dict, optional): dictionary with attributes. Defaults to {}.
         """
         self.attributes = {}
-        if not isinstance(attributes, type(None)):
-            for key, value in attributes.items():
-                self.__setitem__(key, value)
+        for key, value in attributes.items():
+            self.__setitem__(key, value)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         """Override of magic method
 
         Args:
-            key (object): dictionary key of object to retrieve
+            key (str): attribute's key
 
         Returns:
-            object: attribute object requested
+            Any: attribute object requested
         """
+
         return self.attributes[key]
 
-    def __setitem__(self, key, newvalue):
+    def __setitem__(self, key: str, newvalue: Any):
         """Override of magic method
 
         Args:
-            key (object): attribute's key
-            newvalue (object): attribute object
+            key (str): attribute's key
+            newvalue (Any): attribute object
         """
         self.attributes[key] = newvalue
 
@@ -46,7 +46,7 @@ class Event(ABC):
         ABC (class): implementation of python's abstract class
     """
 
-    def __init__(self, time, simulator):
+    def __init__(self, time: Union[int, float], simulator):
         """Event object initialization. The creation of an event must be
         preceded by the definition of a simulator object, which must be
         passed as an argument along with an event time. Upon creation of
