@@ -1,10 +1,9 @@
 import sys
 sys.path.append('../')
 import numpy as np
-from epydemia.intervention import Intervention
+from epydemia.simevents import Intervention
 from epydemia.parameters import MASKING_STATES
 from covid import SusceptibleToRecovered
-import time
 
 class Masking(Intervention):
     '''docstring'''

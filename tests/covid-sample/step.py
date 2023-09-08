@@ -19,7 +19,7 @@ class DailyStep(Step):
         if self.simulator.verbose:
             print('New day beginning {}'.format(self.time))
         for _, disease in self.simulator.population.diseases.items():
-            disease.infect(self.simulator.population)
+            disease.infect()
 
         # Stats collections here
         for i, name in zip(range(8),

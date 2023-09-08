@@ -1,57 +1,10 @@
-from . import Event, Simulator, Stream
-from . import Population
-from . import Intervention
-from . import Disease
-from . import StatsCollector
+from . import Simulator, Stream
+from . import Population, Disease, StatsCollector
+from . import Intervention, Step
 from . import from_file_proportion
 import random
-
-
-class Step(Event):
-    """ Class that is used to define the step event. It's main purpose
-    is to handle how the disease spreads across the population based on
-    a user defined step logic (discrete, continuous), implemented through
-    the do method. It also requires the user to implement an initialization
-    class method, which is called at the beginning of the simulation. For
-    example, in a discrete step the initialize method is used to schedule
-    all discrete events until the end of the simulation.
-
-    An example of a discrete daily step is given by the SampleDailyStep
-    class defined in the special_events module.
-    """
-
-    def __init__(self, time, simulator):
-        """ As the Step class inherits from the Event class, it requires
-        an event time and a simulator object. This method can be 
-        override by the user.
-
-        Args:
-            time (_type_): _description_
-            simulator (_type_): _description_
-        """
-        super().__init__(time, simulator)
-
-    def do(self):
-        """ Method used to execute the logic of the step. Must be
-        implemented by the user.
-
-        Raises:
-            NotImplementedError.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def initialize(cls, simulator, *args, **kwargs):
-        """ Class method used to execute any initialization operations
-        needed at the beginning of the simulation. It can be used to
-        schedule all steps (discrete steps), schedule the first step
-        (continuous step), or any logic designed by the user.
-
-        Args:
-            simulator (Simulator object): Simulator object where
-                                          simulation is allocated.
-        """
-        pass
+import numpy as np
+from typing import Type, Union
 
 
 class AgentBasedSim(Simulator):
@@ -65,7 +18,7 @@ class AgentBasedSim(Simulator):
     intervention can be designed for this purpose).
     """
 
-    def __init__(self, StepCls):
+    def __init__(self, StepCls: Type[Step]):
         """ The initialization of a simulator object requires a Step class.
         When creating an object, the following attributes are defined:
         - population: Population object with agents' information.
@@ -83,7 +36,8 @@ class AgentBasedSim(Simulator):
         assert(issubclass(StepCls, Step))
         self.step = StepCls
 
-    def run(self, stop_time, verbose=True, seeds=(1024,)):
+    def run(self, stop_time: Union[float, int], verbose: bool = True,
+            seeds: list = [1024]):
         """ Method called to run the simulation. It can be override by
         the user to implement additional operations.
 
@@ -104,9 +58,12 @@ class AgentBasedSim(Simulator):
         self.step.initialize(self)
         super().run(self.stop_time)
 
-    def create_population(self, how='basic', population_size=None,
-                          network_seed=2048, population_seed=3069,
-                          pop_attributes=None, filename=None, **kwargs):
+    def create_population(self, how: str = 'basic',
+                          population_size: int = None,
+                          network_seed: int = 2048,
+                          population_seed: int = 3069,
+                          pop_attributes: dict = {},
+                          filename: str = None, **kwargs):
         """ Method used to create a population. There are several ways
         on building one:
         - 'basic': creates a Population object of a desired size.
@@ -168,7 +125,8 @@ class AgentBasedSim(Simulator):
         else:
             raise NotImplementedError('Method not implemented')
 
-    def add_intervention(self, InterventionCls, time, **intervention_kwargs):
+    def add_intervention(self, InterventionCls: Type[Intervention],
+                         time: Union[float, int], **intervention_kwargs):
         """ Method used to schedule an intervention. An intervention class
         is given, and the arguments to create the intervention object are
         passed as kwargs.
@@ -183,8 +141,9 @@ class AgentBasedSim(Simulator):
             raise TypeError('Class must be inherit from the Intervention class.')
         InterventionCls(time, self, **intervention_kwargs)
 
-    def add_disease(self, DiseaseCls, states_seed=None,
-                    disease_kwargs={}):
+    def add_disease(self, DiseaseCls: Type[Disease],
+                    states_seed: np.ndarray[int] = None,
+                    disease_kwargs: dict = {}):
         """ Method used to add a disease to the simulation. The user can
         define a seeding for the disease states.
 
@@ -209,7 +168,7 @@ class AgentBasedSim(Simulator):
             DiseaseCls(self, **disease_kwargs),
             states_seed)
 
-    def add_layer(self, layer_name, **kwargs):
+    def add_layer(self, layer_name: str, **kwargs):
         """ Method used to add a layer to the populaton network.
         Arguments to define how the layer is created are passed as kwargs.
 

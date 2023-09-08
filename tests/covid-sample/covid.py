@@ -1,8 +1,8 @@
 import sys
 sys.path.append('../')
 import numpy as np
-from epydemia.disease import Disease
-from epydemia.special_events import ChangeState
+from epydemia.simobjects import Disease
+from epydemia.simevents import ChangeState
 from epydemia.basedesim import Event
 
 class SusceptibleToExposed(ChangeState):
@@ -163,27 +163,29 @@ class Covid(Disease):
         self['vaccine_seed'] = vaccine_seed
         self['initial_cases'] = initial_cases
 
-    def initialize(self, population):
+    def initialize(self):
         if isinstance(self['vaccine_seed'], type(None)):
-            population[self.name]['vaccine'] = np.full(
-                population.size,
+            self.population[self.name]['vaccine'] = np.full(
+                self.population.size,
                 Covid.VACCINE_STATES['not vaccinated'])
         else:
-            assert(len(self['vaccine_seed']) == population.size)
-            population[self.name]['states'] = self['vaccine_seed']
+            assert(len(self['vaccine_seed']) == self.population.size)
+            self.population[self.name]['states'] = self['vaccine_seed']
         ImportCases(0, self.simulator, self['initial_cases'])
 
-    def infect(self, population):
-        susceptibles, probability = population.get_transmission_probabilities(
-            'covid', susceptible_states=['susceptible'],
-            infectee_states=['presymptomatic', 'symptomatic', 'asymptomatic'])
+    def infect(self):
+        susceptibles, probability = \
+            self.population.get_transmission_probabilities(
+                'covid', susceptible_states=['susceptible'],
+                infectee_states=[
+                    'presymptomatic', 'symptomatic', 'asymptomatic'])
         exposed = susceptibles[np.where(
             self.stream.random(len(probability)) <= probability)]
         for person in exposed:
             SusceptibleToExposed(self.simulator.now(),
                                  self.simulator, person)
 
-    def compute_transmission_probabilities(self, population, vertex_pair_seq):
+    def compute_transmission_probabilities(self, vertex_pair_seq):
         '''
         Update transmission must consider all interventions
         '''
@@ -196,5 +198,5 @@ class Covid(Disease):
             else:
                 return 0.3
         vfunc = np.vectorize(masking_prob)
-        masking_p = vfunc(*population['masking'][vertex_pair_seq].T)
+        masking_p = vfunc(*self.population['masking'][vertex_pair_seq].T)
         return masking_p*self['infection_prob']

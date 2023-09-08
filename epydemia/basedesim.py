@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from typing import Any, Union
+from typing import Any, Union, Self, Callable, List
 
 
 class SubsObject:
@@ -38,6 +38,49 @@ class SubsObject:
         self.attributes[key] = newvalue
 
 
+class Simulator(ABC):
+    """ Abstract class that governs the discrete event simulation framework.
+    It allocates the events scheduler and must be used as main handler
+    of the simulation.
+    """
+
+    def __init__(self):
+        """ A simulator object is initialized with an empty scheduler and
+        with a current simulation time of 0.
+        """
+        self.events = Scheduler()
+        self.sim_time = 0
+
+    def run(self, stop_time: Union[float, int] = float('inf')):
+        """ Main method used to run a simulation. It is used to execute all
+        events until:
+        i) a specified stopping time or
+        ii) all events have been executed.
+        The current simulation time is updated upon execution of events.
+
+        Args:
+            stop_time (float, optional): simulation stopping time.
+                                         Defaults to float('inf').
+        """
+        self.sim_time = 0
+        while (self.events.size() > 0):
+            self.sim_time = self.events.next_event().time
+            if self.sim_time <= stop_time:
+                self.events.do_next()
+            else:
+                self.sim_time = stop_time
+                break
+        self.events.clear()
+
+    def now(self) -> float:
+        """ Method used to return the current simulation time.
+
+        Returns:
+            float: _description_
+        """
+        return self.sim_time
+
+
 class Event(ABC):
     """Abstract event class to use in a discrete simulation framework.
     User-defined events must inherit from this class.
@@ -46,7 +89,7 @@ class Event(ABC):
         ABC (class): implementation of python's abstract class
     """
 
-    def __init__(self, time: Union[int, float], simulator):
+    def __init__(self, time: Union[int, float], simulator: Simulator):
         """Event object initialization. The creation of an event must be
         preceded by the definition of a simulator object, which must be
         passed as an argument along with an event time. Upon creation of
@@ -59,9 +102,9 @@ class Event(ABC):
         """
         self.time = time
         self.simulator = simulator
-        self.simulator._add_event(self)
+        self.simulator.events.add_event(self)
 
-    def __lt__(self, other_event):
+    def __lt__(self, other_event: Self) -> bool:
         """Override of magic method to allow comparison of events using
         their execution time.
 
@@ -74,7 +117,7 @@ class Event(ABC):
         """
         return self.time < other_event.time
 
-    def __gt__(self, other):
+    def __gt__(self, other: Self) -> bool:
         """Override of magic method to allow comparison of events using
         their execution time.
 
@@ -109,7 +152,7 @@ class Scheduler:
         """
         self.events_list = list()
 
-    def add(self, event):
+    def add_event(self, event: Event):
         """ Method used to schedule an event by adding it to the scheduler.
 
         Args:
@@ -129,7 +172,7 @@ class Scheduler:
             i += 1
         self.events_list.insert(i, event)
 
-    def cancel(self, event):
+    def cancel_event(self, event: Event):
         """ Method used to cancel an event from the scheduler. Object is
         removed from the events list.
 
@@ -143,7 +186,7 @@ class Scheduler:
         """
         self.events_list = list()
 
-    def size(self):
+    def size(self) -> int:
         """ Method used to determine the number of events present at
         the event_list.
 
@@ -177,7 +220,7 @@ class Scheduler:
         """
         self.events_list.sort()
 
-    def find(self, condition):
+    def find(self, condition: Callable) -> List[Event]:
         """ Method used to find all events that meet a condition.
 
         Args:
@@ -194,68 +237,6 @@ class Scheduler:
         return [e for e in self.events_list if condition(e)]
 
 
-class Simulator(ABC):
-    """ Abstract class that governs the discrete event simulation framework.
-    It allocates the events scheduler and must be used as main handler
-    of the simulation.
-    """
-
-    def __init__(self):
-        """ A simulator object is initialized with an empty scheduler and
-        with a current simulation time of 0.
-        """
-        self.events = Scheduler()
-        self.sim_time = 0
-
-    def run(self, stop_time=float('inf')):
-        """ Main method used to run a simulation. It is used to execute all
-        events until:
-        i) a specified stopping time or
-        ii) all events have been executed.
-        The current simulation time is updated upon execution of events.
-
-        Args:
-            stop_time (float, optional): simulation stopping time.
-                                         Defaults to float('inf').
-        """
-        self.sim_time = 0
-        while (self.events.size() > 0):
-            self.sim_time = self.events.next_event().time
-            if self.sim_time <= stop_time:
-                self.events.do_next()
-            else:
-                self.sim_time = stop_time
-                break
-        self.events.clear()
-
-    def now(self):
-        """ Method used to return the current simulation time.
-
-        Returns:
-            float: _description_
-        """
-        return self.sim_time
-
-    def _add_event(self, event):
-        """ Internal method used to schedule an event when this object
-        is created. The object is added to the events list, which in
-        turn is updated being sorted.
-        See the Event abstract class __init__ function.
-
-        Args:
-            event (Event.object): event object to be scheduled.
-        """
-        self.events.add(event)
-
-    def cancel_event(self, event):
-        """ Method used to cancel an event when needed.
-
-        Args:
-            event (Event.object): event object to be cancelled.
-        """
-        self.events.cancel(event)
-
-
 class Stream(np.random.RandomState):
     """ Class that defines a stream of pseudo-random numbers. It inherits from
     numpy's RandomState class which is used to sample random numbers from
@@ -265,7 +246,7 @@ class Stream(np.random.RandomState):
         np.random.RandomState (class): numpy's random state class.
     """
 
-    def __init__(self, seed):
+    def __init__(self, seed: int):
         """ Stream object must be initialized using a seed.
 
         Args:
