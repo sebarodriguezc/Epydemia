@@ -1,6 +1,7 @@
-from . import SubsObject
+from . import SubsObject, Simulator, Stream
+from . import Population
 from abc import ABC, abstractmethod
-
+from typing import Any
 
 class Disease(SubsObject, ABC):
     """ Abstract class used to define diseases. Disease classes are meant
@@ -15,17 +16,16 @@ class Disease(SubsObject, ABC):
         SubsObject (class): Subscriptable object class.
         ABC (class): Python's built-in abstract class.
     """
-    def __init__(self, name, simulator, stream,
-                 infection_prob, states,
-                 **attributes):
+    def __init__(self, name: str, simulator: Simulator, stream: Stream,
+                 infection_prob: float, states: dict, **attributes: Any):
         """ Method that creates a disease object.
 
         Args:
             name (str): disease label
-            simulator (AgentBasedSim): simulator object
+            simulator (Simulator): simulator object
             stream (Stream): stream object for pseudo-random numbers generation
             infection_prob (float): probability of infection (as defined
-                                    by user)
+                                    by user). Must be between 0 and 1.
             states (dict): ditionary defining all possible disease states,
                            where keys are state labels (str) and values are
                            numeric (int) references to states.
@@ -44,7 +44,7 @@ class Disease(SubsObject, ABC):
         what happens when a new infection occurs. For example, in a daily
         step model, the progression of the disease will be updated at the end
         of each day by stochastically infecting those susceptibles who got in
-        contact with infected people during the day. 
+        contact with infected people during the day.
 
         Raises:
             NotImplementedError: Must be implemented by the user.
@@ -55,7 +55,10 @@ class Disease(SubsObject, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def compute_transmission_probabilities(self, population, vertex_pair_seq):
+    def compute_transmission_probabilities(self,
+                                           population: Population,
+                                           vertex_pair_seq:
+                                           list[tuple[int, int]]):
         """ Method used to update the transmission probability throughout
         the network. Must return an iterable sequence with the infection
         probability corresponding to each vertex pair.
