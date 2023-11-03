@@ -25,12 +25,12 @@ class DailyStep(Step):
         for i, name in zip(range(8),
                            ['S', 'E', 'P', 'Sy', 'A', 'R', 'H', 'D']):
             stat = len(
-                np.where(self.simulator.population['covid']['states'] == i)[0])
+                np.where(self.simulator.population['covid'] == i)[0])
             self.simulator.collector.collect(name, stat)
         self.simulator.collector.collect(
             'masking', (self.simulator.population['masking'] == 1).sum())
         self.simulator.collector.collect(
-            'states', self.simulator.population['covid']['states'].copy()
+            'states', self.simulator.population['covid'].copy()
             )
         try:
             self.simulator.collector.collect(

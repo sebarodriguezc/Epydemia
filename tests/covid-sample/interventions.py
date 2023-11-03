@@ -29,22 +29,21 @@ class MaskingBehavior(Intervention):
                 'masking']).sum()/len(x)
 
         def neighbors_are_symptomatic(population, x):
-            if any(population['covid']['states'][x] == population.diseases[
+            if any(population['covid'][x] == population.diseases[
                     'covid']['states']['symptomatic']):
                 return 1
             else:
                 return 0
 
         def proportion_neighbors_symptomatic(population, x):
-            return np.isin(population['covid']['states'][x],
+            return np.isin(population['covid'][x],
                            population.diseases['covid']['states'][
                                'symptomatic']).sum()/len(x)
 
         def hospitalized_deaths(population, x):
-            if any(population['covid']['states'][x] == population.diseases[
+            if any(population['covid'][x] == population.diseases[
                     'covid']['states']['hospitalized']) or any(
-                population['covid'][
-                    'states'][x] == population.diseases['covid'][
+                population['covid'][x] == population.diseases['covid'][
                         'states']['hospitalized']):
                 return 1
             else:
@@ -52,7 +51,7 @@ class MaskingBehavior(Intervention):
 
         def total_hospitalized(population):
             if any(population[
-                'covid']['states'] == population.diseases[
+                'covid'] == population.diseases[
                     'covid']['states']['hospitalized']):
                 return np.ones(population.size)
             else:
@@ -149,16 +148,16 @@ class Vaccination(Intervention):
         target_idx = self.target_func(self.simulator.population,
                                       **self.target_kwargs)
         idx = np.where(
-            (self.simulator.population[self.disease_name]['states'] ==
+            (self.simulator.population[self.disease_name] ==
              self.simulator.population.diseases[
                  self.disease_name]['states']['susceptible']) &
             (self.simulator.population[self.disease_name][
-                'vaccine'] == self.simulator.population.diseases[
+                'covid_vaccine'] == self.simulator.population.diseases[
                     self.disease_name].VACCINE_STATES['not vaccinated']))[0]
 
         target_idx = target_idx[np.isin(target_idx, idx, assume_unique=True)]
         self.simulator.population[self.disease_name][
-                'vaccine'][target_idx] = self.simulator.population.diseases[
+                'covid_vaccine'][target_idx] = self.simulator.population.diseases[
                     self.disease_name].VACCINE_STATES['vaccinated']
         SusceptibleToRecovered(self.simulator.now(),
                                self.simulator, target_idx)

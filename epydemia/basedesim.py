@@ -198,9 +198,9 @@ class Scheduler:
     def do_next(self):
         """ Method used to handle the execution of events.
         """
-        try:
+        if self.size() > 0:
             self.events_list.pop(0).do()
-        except IndexError:
+        else:
             print('No more events to be executed')
 
     def next_event(self):
@@ -253,4 +253,7 @@ class Stream(np.random.RandomState):
             seed (int): pseudo-random generator seed.
         """
         super().__init__(seed=seed)
-        self.seed = seed
+        self.random_seed = seed
+
+    def reset(self):
+        self.seed(self.random_seed)

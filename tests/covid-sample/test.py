@@ -1,6 +1,7 @@
 #%%
 import sys
 sys.path.append('../../')
+sys.path.append('/covid-sample/')
 import importlib
 import epydemia as epy
 importlib.reload(epy)
@@ -40,23 +41,16 @@ if __name__ == '__main__':
 
     # Create layers of network
     # sim.add_layer(layer_name='community', how='barabasi', n=pop_size, m=10)
-    sim.add_layer(layer_name='community', how='erdos_renyi', n=pop_size, p=0.05)
+    sim.add_layer(layer_label='community', how='erdos_renyi', n=pop_size, p=0.05)
 
     # Define disease
-    states = {'susceptible': 0,
-            'exposed': 1,
-            'presymptomatic': 2,
-            'symptomatic': 3,
-            'asymptomatic': 4,
-            'recovered': 5,
-            'hospitalized': 6,
-            'death': 7}
-    covid_seed = stream.choice([0, 5], size=pop_size, p=[1, 0])
+    states = ['susceptible', 'exposed', 'presymptomatic', 'symptomatic',
+              'asymptomatic', 'recovered', 'hospitalized', 'death']
+    covid_seed = stream.choice(['susceptible', 'recovered'], size=pop_size, p=[1, 0])
     sim.add_disease(Covid, states_seed=covid_seed,
-                    disease_kwargs={'infection_prob': 0.1,
-                                    'initial_cases': 5,
-                                    'stream': epy.Stream(65347),
-                                    'states':states})
+                    disease_kwargs={'infection_prob': 0.6,
+                                    'initial_cases': 3,
+                                    'states': states})
 
     # Interventions
     stream = epy.Stream(seed=1023)
@@ -82,7 +76,7 @@ if __name__ == '__main__':
 
     # Run model
     tm = time.time()
-    sim.run(stop_time=simulate_for)  # Streams should be set when running the model
+    sim.run(stop_time=simulate_for, disease_random_seeds=[1323])
     print(time.time() - tm)
 
     #%%
@@ -91,8 +85,10 @@ if __name__ == '__main__':
     plt.plot(np.sum([sim.collector['Sy'],sim.collector['A'],sim.collector['P']], axis=0),
              label='I')
     plt.plot(sim.collector['R'], label='R')
-    plt.plot(sim.collector['H'], label='H')
-    plt.plot(sim.collector['D'], label='D')
+    #plt.plot(sim.collector['H'], label='H')
+    #plt.plot(sim.collector['D'], label='D')
+    plt.xlabel('Days')
+    plt.ylabel('# of agents')
     plt.legend()
 
     #%%
@@ -140,7 +136,7 @@ if __name__ == '__main__':
                   5: 'green', 6: 'purple', 7: 'k'}
     labels = ['Susceptible', 'Exposed', 'Infected', 'I', 'I',
               'Recovered', 'Hospitalized']
-    colors = [color_dict[i] for i in sim.population['covid']['states']]
+    colors = [color_dict[i] for i in sim.population['covid']]
 
 
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -169,17 +165,41 @@ if __name__ == '__main__':
     plt.plot(x, y)
 
     # %%
-    fig, ax = plt.subplots(figsize=(8,8))
+    from matplotlib.lines import Line2D
+
+    fig, ax = plt.subplots(figsize=(10,10))
     graph = sim.population.network['community'].graph
     layout = graph.layout('kk')
     color_dict = {0: 'white', 1: 'orange', 2: 'red', 3: 'red', 4: 'red',
                   5: 'green', 6: 'purple', 7: 'k'}
     colors = [[color_dict[i] for i in states] for states in sim.collector['states']]
 
-    plot_kwargs = {'edge_width': 0.3, 'vertex_size': 0.5}
+    color_dict = {0: 'white', 1: 'orange', 2: 'red', 3: 'green'}
+    labels = ['Susceptible', 'Exposed', 'Infected', 'Recovered']
+
+
+    legend_elements = [
+                    Line2D([0], [0], marker='o', color='w', label='Susceptible',
+                            markerfacecolor='white', markeredgecolor='k', markersize=25),
+                    Line2D([0], [0], marker='o', color='w', label='Exposed',
+                            markerfacecolor='orange', markersize=25),
+                    Line2D([0], [0], marker='o', color='w', label='Infected',
+                            markerfacecolor='red', markersize=25),
+                    Line2D([0], [0], marker='o', color='w', label='Recovered',
+                            markerfacecolor='green', markersize=25)]
+    ax.legend(handles=legend_elements, loc='upper right', fontsize=20)
+    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
+
+    plot_kwargs = {'edge_width': 0.3, 'vertex_size': 0.4}
     epy.plot.animate(fig, ax, graph, colors, layout, save_as = 'ani.gif',
                     frames=simulate_for,
-                    fps=1, interval=1000, plot_kwargs=plot_kwargs)
+                    fps=1, interval=1000, plot_kwargs=plot_kwargs,
+                    saving_kwargs={'savefig_kwargs': {'bbox_inches': 'tight'},
+                                   'dpi':300})
 
+    for i in [0, 1, 2, 3]:
+        ax.scatter([], [], s=100, c=color_dict[i], edgecolor='k',
+                    label=labels[i])
+    plt.legend(fontsize=12, loc='best')
 
 # %%

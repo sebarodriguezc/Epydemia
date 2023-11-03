@@ -20,8 +20,8 @@ class Disease(SubsObject, ABC):
         SubsObject (class): Subscriptable object class.
         ABC (class): Python's built-in abstract class.
     """
-    def __init__(self, name: str, simulator: Simulator, stream: Stream,
-                 infection_prob: float, states: dict[str, int],
+    def __init__(self, label: str, simulator: Simulator,
+                 infection_prob: float, states: List[str],
                  **attributes: Any):
         """ Method that creates a disease object.
 
@@ -36,12 +36,12 @@ class Disease(SubsObject, ABC):
                            numeric (int) references to states.
         """
         super().__init__(attributes)
-        self.name = name
+        self.label = label
         self.simulator = simulator
         self.population = simulator.population
-        self.stream = stream
+        self.stream = None
         self['infection_prob'] = infection_prob
-        self['states'] = states
+        self['states'] = {state:i for i,state in enumerate(states)}
 
     @abstractmethod
     def infect(self):
@@ -87,16 +87,44 @@ class Disease(SubsObject, ABC):
 
     @abstractmethod
     def initialize(self):
-        """ Method used to conduct any operations when initializing 
+        """ Method used to conduct any operations when initializing
         the simulation.
-
-        Args:
-            population (Population object): population object.
 
         Raises:
             NotImplementedError: _description_
         """
         raise NotImplementedError
+    
+    def state_id(self, state_label: str) -> int:
+        """ Mapper function to return the id of state.
+
+        Args:
+            state_label (str): label of the disease state.
+
+        Returns:
+            int: id representing state.
+        """
+        return self['states'][state_label]
+    
+    def set_random_state(self, seed: int):
+        """ Function used to create a stream of pseudo-random numbers.
+
+        Args:
+            seed (int): _description_
+
+        Raises:
+            IndexError: _description_
+            TypeError: _description_
+            KeyError: _description_
+            ValueError: _description_
+            NotImplementedError: _description_
+            KeyError: _description_
+            KeyError: _description_
+
+        Returns:
+            _type_: _description_
+        """
+        self.stream = Stream(seed=seed)
 
 
 class Population(SubsObject):
@@ -131,23 +159,24 @@ class Population(SubsObject):
         self.size = population_size
         self.diseases = {}
 
-    def add_attribute(self, attribute_name: str,
-                      values: Union[list, np.ndarray]):
+    def add_attribute(self, attribute_label: str,
+                      values: Any):
         """ Method used to add an attribute to the population.
         Attribute values must be given as a numpy array of length
         equal to the size of the population.
 
         Args:
-            attribute_name (str): label/name to access the attribute.
+            attribute_label (str): label to access the attribute.
             values (numpy.Array): attribute values.
         """
-        try:
-            assert(len(values) == self.size)
-        except AssertionError:
-            raise IndexError(
-                "Array size ({}) doesn't match population size ({})"
-                .format(values.shape, self.size))
-        self[attribute_name] = values
+        if type(values) in [list, np.ndarray]:
+            try:
+                assert(len(values) == self.size)
+            except AssertionError:
+                raise IndexError(
+                    "Array size ({}) doesn't match population size ({})"
+                    .format(values.shape, self.size))
+        self[attribute_label] = values
 
     def introduce_disease(self, disease: Disease, states_seed: int = None,
                           initial_state: str = 'susceptible'):
@@ -177,27 +206,25 @@ class Population(SubsObject):
             raise TypeError('Disease must be a Disease object')
 
         # Create data structure
-        self.diseases[disease.name] = disease
-        self[disease.name] = {}
+        self.diseases[disease.label] = disease
+        self[disease.label] = {}
 
         # Initialize states based on seed or an initial state
         if isinstance(states_seed, type(None)):
             try:
-                self[disease.name]['states'] = np.full(
-                    self.size, disease['states'][initial_state])
+                self[disease.label] = \
+                    np.full(self.size, disease.state_id(initial_state))
             except KeyError:
                 raise KeyError("'{}' is not a state of {}".format(
-                    initial_state, disease.name))
+                    initial_state, disease.label))
         else:
             assert(len(states_seed) == self.size)
-            self[disease.name]['states'] = states_seed
-
-        # Execute any disease initialization
-        disease.initialize()
+            self[disease.label] = \
+                np.array([disease.state_id(s) for s in states_seed])
 
         # Add probability of infection to the network
-        for layer_name in self.network.layers.keys():
-            self.network.add_attributes_edges(layer_name, disease.name,
+        for layer_label in self.network.layers.keys():
+            self.network.add_attributes_edges(layer_label, disease.label,
                                               disease['infection_prob'])
 
     '''
@@ -271,11 +298,13 @@ class Population(SubsObject):
         return susceptibles, prob_infection
     '''
 
-    def get_transmission_probabilities(self, disease_name: str,
+    def get_transmission_probabilities(self, disease_label: str,
                                        susceptible_states: List[str],
                                        infectee_states: List[str]) -> (
                                            np.ndarray, List[float]):
-        """ Method used to retrieve 
+        """ Method used to retrieve the transmission probability between
+        agents in any of the susceptibles states and agents in any of the
+        infectious states for a certain disease.
 
         Args:
             disease_name (_type_): _description_
@@ -283,13 +312,13 @@ class Population(SubsObject):
         def calc_prob(probs: List[float]):
             return 1 - np.product([1-p for p in probs])
 
-        susceptible_state_ids = [self.diseases[disease_name]['states'][s]
+        susceptible_state_ids = [self.disease_state_id(disease_label, s)
                                  for s in susceptible_states]
-        infectee_state_ids = [self.diseases[disease_name]['states'][s]
+        infectee_state_ids = [self.disease_state_id(disease_label, s)
                               for s in infectee_states]
 
         infected = np.where(
-            np.isin(self[disease_name]['states'],
+            np.isin(self[disease_label],
                     infectee_state_ids))[0]
 
         if len(infected) > 0:
@@ -299,7 +328,7 @@ class Population(SubsObject):
                  for person in infected]))
 
             susceptibles = people_at_risk[np.where(
-                np.isin(self[disease_name]['states'][people_at_risk],
+                np.isin(self[disease_label][people_at_risk],
                         susceptible_state_ids))[0]]
         else:
             susceptibles = np.array([])
@@ -310,19 +339,19 @@ class Population(SubsObject):
             neighborhoods = layer.graph.neighborhood(susceptibles)  # check mode, should be undirected graph.
 
             neighborhoods = [
-                [n for n in neighbors if self[disease_name]['states'][n] in
+                [n for n in neighbors if self[disease_label][n] in
                  infectee_state_ids]
                 for neighbors in neighborhoods]  # This line can be improved for efficiency
 
             prob_infection.append([
                 calc_prob(layer.graph.es.select(
-                 _source=person, _target=neighbors)[disease_name])
+                 _source=person, _target=neighbors)[disease_label])
                 for person, neighbors in zip(susceptibles, neighborhoods)])
 
         prob_infection = list(map(calc_prob, zip(*prob_infection)))
         return susceptibles, prob_infection
 
-    def get_state(self, disease_name: str, state_name: str) -> np.ndarray:
+    def get_state(self, disease_label: str, state_label: str) -> np.ndarray:
         """ Method used to get the indices of agents that are currently
         on a specified disease state.
 
@@ -334,11 +363,11 @@ class Population(SubsObject):
             indices: numpy.Array with the indices of agents in that state.
         """
         return np.where(
-            self[disease_name]['states'] ==
-            self.diseases[disease_name]['states'][state_name])[0]
+            self[disease_label] ==
+            self.diseases[disease_label].state_id(state_label))[0]
 
-    def change_state(self, idx: Union[int, List[int]], disease_name: str,
-                     state_name: str):
+    def change_state(self, idx: Union[int, List[int]], disease_label: str,
+                     state_label: str):
         """ Method used to change the disease state of a subset of agents.
 
         Args:
@@ -346,12 +375,12 @@ class Population(SubsObject):
             disease_name (str): name of the disease.
             state_name (str): state to change to.
         """
-        self[disease_name]['states'][idx] = self.diseases[
-            disease_name]['states'][state_name]
+        self[disease_label][idx] = \
+            self.disease_state_id(disease_label, state_label)
 
     def update_transmission_probabilities(self,
-                                          disease_names: List[str] = None,
-                                          layer_names: List[str] = None,
+                                          disease_labels: List[str] = None,
+                                          layer_labels: List[str] = None,
                                           target_vertex_seq: List[int] = None):
         """ Method used to update the transmission probabilities in the
         Network. Updates through the network are calculated based on each
@@ -369,23 +398,23 @@ class Population(SubsObject):
                                                 Defaults to None.
         """
 
-        if isinstance(disease_names, type(None)):
-            disease_names = self.diseases.keys()
-        if isinstance(layer_names, type(None)):
-            layer_names = self.network.layers.keys()
+        if isinstance(disease_labels, type(None)):
+            disease_labels = self.diseases.keys()
+        if isinstance(layer_labels, type(None)):
+            layer_labels = self.network.layers.keys()
 
-        for layer_name in layer_names:
-            es, es_vertex_ids = self.network.get_edges(layer_name,
+        for layer_label in layer_labels:
+            es, es_vertex_ids = self.network.get_edges(layer_label,
                                                        target_vertex_seq)
-            for disease_name in disease_names:
+            for disease_label in disease_labels:
                 new_p = self.diseases[
-                    disease_name].compute_transmission_probabilities(
+                    disease_label].compute_transmission_probabilities(
                     es_vertex_ids)
                 self.network.add_attributes_edges(
-                    layer_name, disease_name, new_p,
+                    layer_label, disease_label, new_p,
                     edge_seq=[e.index for e in es])
 
-    def to_file(self, filename: str, var_names: List[str]):
+    def to_file(self, filename: str, var_labels: List[str]):
         """ Saves population to a file. A list of variable names/labels is
         needed to specify which attributes to save. If a disease name is
         given, the disease states array is saved.
@@ -395,12 +424,22 @@ class Population(SubsObject):
             var_names (_type_): list with attributes names to save.
         """
         variables = {}
-        for key in var_names:
-            if key in self.diseases.keys():
-                variables[key] = self[key]['states']
-            elif key in self.attributes.keys():
-                variables[key] = self[key]
+        for key in var_labels:
+            variables[key] = self[key]
         dict_to_csv(variables, filename)
+
+    def disease_state_id(self, disease_label: str, state_label: str) -> int:
+        """ Wrapper function to get the id of a particular disease state.
+        This must be used for indexing the population disease state attribute.
+
+        Args:
+            disease_label (str): label of the disease.
+            state_label (str): state of the disease.
+
+        Returns:
+            int: _description_
+        """
+        return self.diseases[disease_label].state_id(state_label)
 
 
 class Layer():
@@ -411,14 +450,14 @@ class Layer():
     layers must have the same number of vertices.
     """
 
-    def __init__(self, name: str, graph: ig.Graph):
+    def __init__(self, label: str, graph: ig.Graph):
         """ Creates a Layer object using a name and a graph.
 
         Args:
             name (str): name of the layer.
             graph (igraph.Graph): undirected graph object.
         """
-        self.name = name
+        self.label = label
         self.active = True
         self.graph = graph
 
@@ -456,7 +495,7 @@ class Network:
         """ Creates a Network object.
         """
         self.layers = dict()
-        self.layers_names = []
+        self.layers_labels = []
 
     def __getitem__(self, key: str) -> Layer:
         """ Retrives an specific layer.
@@ -469,18 +508,20 @@ class Network:
         """
         return self.layers[key]
 
-    def __setitem__(self, layer_name: str, new_layer: Layer):
+    def __setitem__(self, layer_label: str, new_layer: Layer):
         """Adds a layer to the network.
 
         Args:
-            layer_name (str): layer name.
+            layer_label (str): label of the layer.
             new_layer (Layer.object): layer to add.
         """
         assert(isinstance(new_layer, Layer))
-        self.layers[layer_name] = new_layer
-        self.layers_names.append(layer_name)
+        self.layers[layer_label] = new_layer
+        self.layers_labels.append(layer_label)
 
-    def add_layer(self, layer_name: str, how: str = 'barabasi', **kwargs):
+    def add_layer(self, layer_label: str, how: str = 'barabasi',
+                  filename: str = None, graph: Any = None,
+                  **kwargs):
         """ Method that adds a layer to the network through different ways.
         Implemented methods include creating random graphs using igraph's
         built-in method such as barabasi, erdos_renyi or k_regular, or
@@ -497,25 +538,28 @@ class Network:
             NotImplementedError: _description_
         """
         if how == 'barabasi':
-            self[layer_name] = Layer(name=layer_name,
+            self[layer_label] = Layer(label=layer_label,
                                      graph=ig.Graph.Barabasi(**kwargs))
         elif how == 'erdos_renyi':
-            self[layer_name] = Layer(name=layer_name,
+            self[layer_label] = Layer(label=layer_label,
                                      graph=ig.Graph.Erdos_Renyi(**kwargs))
         elif how == 'k_regular':
-            self[layer_name] = Layer(name=layer_name,
+            self[layer_label] = Layer(label=layer_label,
                                      graph=ig.K_Regular(**kwargs))
         elif how == 'graph':
-            try:
-                self[layer_name] = Layer(name=layer_name,
-                                         graph=kwargs['graph'])
-            except KeyError:
+            if type(graph) is not type(None):
+                self[layer_label] = Layer(label=layer_label,
+                                         graph=graph)
+            else:
                 raise ValueError(
                     "Must pass an igraph.Graph using the 'graph' argument")
+        elif how == 'file':
+                g = ig.Graph.Read_GraphML(filename)
+                self[layer_label] = Layer(label=layer_label, graph=g)
         else:
             raise NotImplementedError('Method not implemented')
 
-    def activate_layer(self, layer_name: str):
+    def activate_layer(self, layer_label: str):
         """ Method used to change the state of a layer to active.
 
         Args:
@@ -525,11 +569,11 @@ class Network:
             KeyError: if layer is not found in network
         """
         try:
-            self.layers[layer_name].active = True
+            self.layers[layer_label].active = True
         except KeyError:
             raise KeyError('Layer not found in the Network')
 
-    def deactivate_layer(self, layer_name: str):
+    def deactivate_layer(self, layer_label: str):
         """ Method used to change the state of a layer to deactivated.
 
         Args:
@@ -539,7 +583,7 @@ class Network:
             KeyError: if layer is not found in network
         """
         try:
-            self.layers[layer_name].active = False
+            self.layers[layer_label].active = False
         except KeyError:
             raise KeyError('Layer not found in the Network')
 
@@ -551,7 +595,7 @@ class Network:
         """
         return [layer for key, layer in self.layers.items() if layer.active]
 
-    def add_attributes_edges(self, layer_name: str, attr_name: str,
+    def add_attributes_edges(self, layer_label: str, attr_label: str,
                              attrs: Union[list, np.ndarray],
                              edge_seq: List[int] = None):
         """ Method used to set the attribute values for a set of edges. If
@@ -566,11 +610,11 @@ class Network:
                                        Defaults to None.
         """
         if isinstance(edge_seq, type(None)):
-            self[layer_name].graph.es[attr_name] = attrs
+            self[layer_label].graph.es[attr_label] = attrs
         else:
-            self[layer_name].graph.es.select(edge_seq)[attr_name] = attrs
+            self[layer_label].graph.es.select(edge_seq)[attr_label] = attrs
 
-    def get_edges(self, layer_name: str,
+    def get_edges(self, layer_label: str,
                   target_vertex_seq: List[int] = None) -> (
                       ig.EdgeSeq, List[Tuple[int, int]]):
         """ Method used to get a set of edges. If a sequence of vertex
@@ -579,7 +623,7 @@ class Network:
         source.
 
         Args:
-            layer_name (str): name of the layer.
+            layer_label (str): name of the layer.
             target_vertex_seq (list, optional): list containing the
                                                 index of the target vertices.
                                                 Defaults to None.
@@ -590,15 +634,15 @@ class Network:
                                    as tuples with its vertex ids.
         """
         if isinstance(target_vertex_seq, type(None)):
-            edge_seq = self[layer_name].graph.es
+            edge_seq = self[layer_label].graph.es
         else:
-            edge_seq = self[layer_name].graph.es.select(
+            edge_seq = self[layer_label].graph.es.select(
                 _source=target_vertex_seq)
         edge_seq_vertex_ids = [[edge.source, edge.target] for edge in edge_seq]
         return edge_seq, edge_seq_vertex_ids
 
     def get_neighbors(self, vertex_seq: List[int] = None,
-                      layer_name: str = None, **kwargs) -> List[List[int]]:
+                      layer_label: str = None, **kwargs) -> List[List[int]]:
         """ Method used to retrieve neighbors for a vertex sequence.
 
         Args:
@@ -607,13 +651,13 @@ class Network:
             layer_name (str, optional): name of the layer. Defaults to None.
 
         Returns:
-            neighborhoos (list): list containing the list of neighbors for
+            neighborhoods (list): list containing the list of neighbors for
                                 each vertex.
         """
-        if isinstance(layer_name, type(None)):
-            search_layers = self.layers_names
+        if isinstance(layer_label, type(None)):
+            search_layers = self.layers_labels
         else:
-            search_layers = [layer_name]
+            search_layers = [layer_label]
         if isinstance(vertex_seq, type(None)):
             vertex_seq = [v.index for v in self[search_layers[0]].graph.vs]
         neighborhoods = list()
@@ -627,11 +671,11 @@ class Network:
 
 class StatsCollector(SubsObject):
 
-    def collect(self, stat_name: str, value: Any):
-        if stat_name not in self.attributes.keys():
-            self[stat_name] = [value]
+    def collect(self, label: str, value: Any):
+        if label not in self.attributes.keys():
+            self[label] = [value]
         else:
-            self[stat_name].append(value)
+            self[label].append(value)
 
     def clear(self):
         self.attributes = {}

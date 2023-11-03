@@ -75,7 +75,7 @@ class HospitalizedToRecovered(ChangeState):
 
     def do(self):
         self.simulator.population.change_state(self.idx, 'covid', 'recovered')
-        time = self.simulator.population.diseases['covid'].stream.exponential(20)
+        time = self.simulator.population.diseases['covid'].stream.gamma(25, 10)
         RecoveredToSusceptible(self.simulator.now() + time,
                                self.simulator, self.idx)
         if self.simulator.verbose:
@@ -113,7 +113,7 @@ class AsymptomaticToRecovered(ChangeState):
 
     def do(self):
         self.simulator.population.change_state(self.idx, 'covid', 'recovered')
-        time = self.simulator.population.diseases['covid'].stream.exponential(20)
+        time = self.simulator.population.diseases['covid'].stream.gamma(25, 10)
         RecoveredToSusceptible(self.simulator.now() + time,
                                self.simulator, self.idx)
         if self.simulator.verbose:
@@ -155,22 +155,22 @@ class Covid(Disease):
         'not vaccinated': 0,
         'vaccinated': 1}
 
-    def __init__(self, simulator, stream, infection_prob=0.5,
+    def __init__(self, simulator, infection_prob=0.5,
                  initial_cases=5, vaccine_seed=None,
                  states={0: 'susceptible'}, **kwargs):
-        super().__init__('covid', simulator, stream, infection_prob,
+        super().__init__('covid', simulator, infection_prob,
                          states=states, **kwargs)
         self['vaccine_seed'] = vaccine_seed
         self['initial_cases'] = initial_cases
 
     def initialize(self):
         if isinstance(self['vaccine_seed'], type(None)):
-            self.population[self.name]['vaccine'] = np.full(
+            self.population['covid_vaccine'] = np.full(
                 self.population.size,
                 Covid.VACCINE_STATES['not vaccinated'])
         else:
             assert(len(self['vaccine_seed']) == self.population.size)
-            self.population[self.name]['states'] = self['vaccine_seed']
+            self.population[self.name]= self['vaccine_seed']
         ImportCases(0, self.simulator, self['initial_cases'])
 
     def infect(self):

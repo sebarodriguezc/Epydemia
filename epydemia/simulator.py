@@ -4,7 +4,8 @@ from . import Intervention, Step
 from . import from_file_proportion
 import random
 import numpy as np
-from typing import Type, Union
+import pandas as pd
+from typing import Type, Union, List
 
 
 class AgentBasedSim(Simulator):
@@ -36,8 +37,9 @@ class AgentBasedSim(Simulator):
         assert(issubclass(StepCls, Step))
         self.step = StepCls
 
-    def run(self, stop_time: Union[float, int], verbose: bool = True,
-            seeds: list = [1024]):
+    def run(self, stop_time: Union[float, int],
+            disease_random_seeds: List[int],
+            verbose: bool = True):
         """ Method called to run the simulation. It can be override by
         the user to implement additional operations.
 
@@ -52,16 +54,26 @@ class AgentBasedSim(Simulator):
         self.verbose = verbose
         self.collector = StatsCollector()
         self.stop_time = stop_time
+        
+        # Setup diseases
+        assert(len(disease_random_seeds) == len(self.population.diseases))
+        for seed, (_, disease) in zip(disease_random_seeds,
+                                      self.population.diseases.items()):
+            disease.set_random_state(seed)
+            disease.initialize()
+        
+        # Schedule interventions
 
-        #Covid.stream = Stream(seed=seeds[0])  # TODO: Assign streams for each disease class or object?
-
+        # Initialize main step
         self.step.initialize(self)
+        
+        # Run model
         super().run(self.stop_time)
 
     def create_population(self, how: str = 'basic',
                           population_size: int = None,
-                          network_seed: int = 2048,
-                          population_seed: int = 3069,
+                          population_random_seed: int = 3069,
+                          network_random_seed: int = 2048,
                           pop_attributes: dict = {},
                           filename: str = None, **kwargs):
         """ Method used to create a population. There are several ways
@@ -74,6 +86,7 @@ class AgentBasedSim(Simulator):
                             Proportions must be defined in a file 
                             specifying attribute's name and possible
                             values.
+        - 'from_csv-: using a csv file where columns are attributes.
 
         Args:
             how (str, optional): . Defaults to 'basic'.
@@ -99,8 +112,8 @@ class AgentBasedSim(Simulator):
             NotImplementedError
         """
 
-        random.seed(network_seed)  # igraph seed
-        stream = Stream(population_seed)
+        random.seed(network_random_seed)  # igraph seed
+        stream = Stream(population_random_seed)
         if how == 'basic':
             self.population = Population(population_size)
         elif how == 'from_arrays':
@@ -122,6 +135,12 @@ class AgentBasedSim(Simulator):
                 filename, population_size, stream)
             for key, value in pop_attributes.items():
                 self.population.add_attribute(key, value)
+        elif how == 'from_csv':
+            assert(isinstance(filename, str))
+            df = pd.read_csv(filename)
+            self.population = Population(population_size=len(df))
+            for c, v in df.items():
+                self.population.add_attribute(c, v.values)
         else:
             raise NotImplementedError('Method not implemented')
 
@@ -166,15 +185,16 @@ class AgentBasedSim(Simulator):
             raise TypeError('Class must inherit from the Disease class.')
         self.population.introduce_disease(
             DiseaseCls(self, **disease_kwargs),
-            states_seed)
+            states_seed
+            )
 
-    def add_layer(self, layer_name: str, **kwargs):
+    def add_layer(self, layer_label: str, **kwargs):
         """ Method used to add a layer to the populaton network.
         Arguments to define how the layer is created are passed as kwargs.
 
         Args:
-            layer_name (str): name of the layer.
+            layer_label (str): name of the layer.
         """
         if 'n' not in kwargs:
             kwargs['n'] = self.population.size
-        self.population.network.add_layer(layer_name=layer_name, **kwargs)
+        self.population.network.add_layer(layer_label=layer_label, **kwargs)
