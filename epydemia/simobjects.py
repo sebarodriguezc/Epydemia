@@ -1,131 +1,10 @@
-from . import SubsObject, Simulator, Stream
-from abc import ABC, abstractmethod
+from . import SubsObject
 from typing import Any, Union, List, Tuple
 import igraph as ig
 import numpy as np
 import random
 from . import dict_to_csv
-
-
-class Disease(SubsObject, ABC):
-    """ Abstract class used to define diseases. Disease classes are meant
-    to hold all the information relative to infectious diseases. It is
-    required that the user defines at least the disease progression states 
-    and probability of infection through the network (which it is assumed to be
-    a daily probability of someone getting infected by being in contact with
-    a single infected agent. A different probability definition must go along
-    with a proper definition of the simulation step).
-
-    Args:
-        SubsObject (class): Subscriptable object class.
-        ABC (class): Python's built-in abstract class.
-    """
-    def __init__(self, label: str, simulator: Simulator,
-                 infection_prob: float, states: List[str],
-                 **attributes: Any):
-        """ Method that creates a disease object.
-
-        Args:
-            name (str): disease label
-            simulator (Simulator): simulator object
-            stream (Stream): stream object for pseudo-random numbers generation
-            infection_prob (float): probability of infection (as defined
-                                    by user). Must be between 0 and 1.
-            states (dict): ditionary defining all possible disease states,
-                           where keys are state labels (str) and values are
-                           numeric (int) references to states.
-        """
-        super().__init__(attributes)
-        self.label = label
-        self.simulator = simulator
-        self.population = simulator.population
-        self.stream = None
-        self['infection_prob'] = infection_prob
-        self['states'] = {state:i for i,state in enumerate(states)}
-
-    @abstractmethod
-    def infect(self):
-        """ Method used to trigger the progression of the disease on a subset
-        of susceptible population. The key idea is that this method handles
-        what happens when a new infection occurs. For example, in a daily
-        step model, the progression of the disease will be updated at the end
-        of each day by stochastically infecting those susceptibles who got in
-        contact with infected people during the day.
-
-        Raises:
-            NotImplementedError: Must be implemented by the user.
-
-        Returns:
-            None
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def compute_transmission_probabilities(self,
-                                           vertex_pair_seq:
-                                           List[Tuple[int, int]]) -> Union[
-                                               list, np.ndarray]:
-        """ Method used to update the transmission probability throughout
-        the network. Must return an iterable sequence with the infection
-        probability corresponding to each vertex pair.
-        A population object is needed to access any population attributes
-        needed.
-
-        Args:
-            vertex_pair_seq (list): list with tuples depicting edges through
-                                    from and to nodes indeces. Note that the
-                                    model uses undirected graphs.
-
-        Raises:
-            NotImplementedError: _description_
-
-        Returns:
-            new_infection_probabilities: iterable with the infection
-                                         probabilities associated with edges.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def initialize(self):
-        """ Method used to conduct any operations when initializing
-        the simulation.
-
-        Raises:
-            NotImplementedError: _description_
-        """
-        raise NotImplementedError
-    
-    def state_id(self, state_label: str) -> int:
-        """ Mapper function to return the id of state.
-
-        Args:
-            state_label (str): label of the disease state.
-
-        Returns:
-            int: id representing state.
-        """
-        return self['states'][state_label]
-    
-    def set_random_state(self, seed: int):
-        """ Function used to create a stream of pseudo-random numbers.
-
-        Args:
-            seed (int): _description_
-
-        Raises:
-            IndexError: _description_
-            TypeError: _description_
-            KeyError: _description_
-            ValueError: _description_
-            NotImplementedError: _description_
-            KeyError: _description_
-            KeyError: _description_
-
-        Returns:
-            _type_: _description_
-        """
-        self.stream = Stream(seed=seed)
-
+from . import AbstractLayer, AbstractNetwork, AbstractDisease
 
 class Population(SubsObject):
     """ This class is used to represent the population of agents. Agents
@@ -139,7 +18,7 @@ class Population(SubsObject):
     accordingly.
     """
 
-    def __init__(self, population_size: int, attributes: dict[str, Any] = {}):
+    def __init__(self, population_size: int, attributes: dict[str, Any] = {}, **network_kwargs):
         """ When initializing a Population object, a population size
         is needed. Any desired attributes must be given initially as
         a dictionary, where keys are an attribute's name and attribute
@@ -155,7 +34,7 @@ class Population(SubsObject):
                                          attributes. Defaults to dict().
         """
         super().__init__(attributes=attributes)
-        self.network = Network()
+        self.network = Network(**network_kwargs)
         self.size = population_size
         self.diseases = {}
 
@@ -178,7 +57,7 @@ class Population(SubsObject):
                     .format(values.shape, self.size))
         self[attribute_label] = values
 
-    def introduce_disease(self, disease: Disease, states_seed: int = None,
+    def introduce_disease(self, disease: AbstractDisease, states_seed: int = None,
                           initial_state: str = 'susceptible'):
         """ Method used to introduce a disease in the population. It creates
         the data structures needed to keep track of each agent's disease
@@ -201,7 +80,7 @@ class Population(SubsObject):
         """
 
         try:
-            assert issubclass(type(disease), Disease)
+            assert issubclass(type(disease), AbstractDisease)
         except AssertionError:
             raise TypeError('Disease must be a Disease object')
 
@@ -253,50 +132,46 @@ class Population(SubsObject):
         prob_infection = list(map(calc_prob, zip(*prob_infection)))
         return susceptibles, prob_infection
     '''
-    '''
-    def get_transmission_probability(self, disease_name):
-        """ Method used to retrieve 
 
-        Args:
-            disease_name (_type_): _description_
-        """
-        def calc_prob(probs):
-            return 1 - np.product([1-p for p in probs])
-
-        susceptibles = np.where(
-            self[disease_name]['states']  ==
-            self.diseases[disease_name]['states']['susceptible'])[0]
-
-        infected = np.where(
-            np.isin(self[disease_name]['states'],
-                    self.diseases[disease_name]['contagious_states']))[0]
-        if len(infected) > 0:
-            people_at_risk = np.unique(np.concatenate(
-                [layer.graph.neighborhood(person)
-                for layer in self.network.get_active_layers()
-                for person in infected]))
-
-            susceptibles = people_at_risk[np.where(
-                self[disease_name]['states'][people_at_risk] ==
-                self.diseases[disease_name]['states']['susceptible'])[0]]
-        prob_infection = []
-
-        for layer in self.network.get_active_layers():
-            neighborhoods = layer.graph.neighborhood(susceptibles)  # check mode, should be undirected graph.
-
-            neighborhoods = [
-                [n for n in neighbors if self[disease_name]['states'][n] in
-                 self.diseases[disease_name]['contagious_states']]
-                for neighbors in neighborhoods]  # This line can be improved for efficiency
-
-            prob_infection.append([
-                calc_prob(layer.graph.es.select(
-                 _source=person, _target=neighbors)[disease_name])
-                for person, neighbors in zip(susceptibles, neighborhoods)])
-
-        prob_infection = list(map(calc_prob, zip(*prob_infection)))
-        return susceptibles, prob_infection
-    '''
+    # def get_transmission_probabilities(self, disease_label: str,
+    #                                    susceptible_states: List[str],
+    #                                    infectee_states: List[str]) -> (
+    #                                        np.ndarray, List[float]):
+    #     """ Method used to retrieve the transmission probability between
+    #     agents in any of the susceptibles states and agents in any of the
+    #     infectious states for a certain disease.
+    #
+    #     Args:
+    #         disease_name (_type_): _description_
+    #     """
+    #     def calc_prob(probs: List[float]):
+    #         return 1 - np.product([1-p for p in probs])
+    #
+    #     susceptible_state_ids = [self.disease_state_id(disease_label, s)
+    #                              for s in susceptible_states]
+    #     infectee_state_ids = [self.disease_state_id(disease_label, s)
+    #                           for s in infectee_states]
+    #
+    #     susceptibles = np.where(
+    #         np.isin(self[disease_label], susceptible_state_ids))[0]
+    #
+    #     prob_infection = []
+    #
+    #     for layer in self.network.get_active_layers():
+    #         neighborhoods = self.network.get_neighborhood(susceptibles, layer=layer)  # check mode, should be undirected graph.
+    #
+    #         neighborhoods = [
+    #             [n for n in neighbors if self[disease_label][n] in
+    #              infectee_state_ids]
+    #             for neighbors in neighborhoods]  # This line can be improved for efficiency
+    #
+    #         prob_infection.append([
+    #             calc_prob(layer.graph.es.select(
+    #              _source=person, _target=neighbors)[disease_label])
+    #             for person, neighbors in zip(susceptibles, neighborhoods)])
+    #
+    #     prob_infection = list(map(calc_prob, zip(*prob_infection)))
+    #     return susceptibles, prob_infection
 
     def get_transmission_probabilities(self, disease_label: str,
                                        susceptible_states: List[str],
@@ -323,9 +198,8 @@ class Population(SubsObject):
 
         if len(infected) > 0:
             people_at_risk = np.unique(np.concatenate(
-                [layer.graph.neighborhood(person)
-                 for layer in self.network.get_active_layers()
-                 for person in infected]))
+                [np.concatenate(self.network.get_neighborhood(infected, layer_label=layer.label))
+                 for layer in self.network.get_active_layers()]))
 
             susceptibles = people_at_risk[np.where(
                 np.isin(self[disease_label][people_at_risk],
@@ -336,7 +210,7 @@ class Population(SubsObject):
         prob_infection = []
 
         for layer in self.network.get_active_layers():
-            neighborhoods = layer.graph.neighborhood(susceptibles)  # check mode, should be undirected graph.
+            neighborhoods = self.network.get_neighborhood(susceptibles, layer_label=layer.label)  # check mode, should be undirected graph.
 
             neighborhoods = [
                 [n for n in neighbors if self[disease_label][n] in
@@ -442,7 +316,7 @@ class Population(SubsObject):
         return self.diseases[disease_label].state_id(state_label)
 
 
-class Layer():
+class Layer(AbstractLayer):
     """ Class used to handle each layer within a Network. It uses igraph's
     graph object to specify it's structure. The graph associated is assumed
     to be an undirected graph.
@@ -457,23 +331,22 @@ class Layer():
             name (str): name of the layer.
             graph (igraph.Graph): undirected graph object.
         """
-        self.label = label
-        self.active = True
+        super().__init__(label)
         self.graph = graph
 
-    def neighbors(self, vertex_seq: List[int], **kwargs) -> List[List[int]]:
+    def neighborhood(self, id_seq: List[int], **kwargs) -> List[List[int]]:
         """ Method used to link igraph's neighborhood method.
 
         Args:
-            vertex_seq (list): list containing the indices of the vertices.
+            id_seq (list): list containing the indices of the vertices.
 
         Returns:
             neighborhood: list with neighbors for each vertex. 
         """
-        return self.graph.neighborhood(vertex_seq, **kwargs)
+        return self.graph.neighborhood(id_seq, **kwargs)
 
 
-class Network:
+class Network(AbstractNetwork):
     """ Class that handles the network structure of the agent based model.
     The network can hold for multiple layers, each one associated with an
     independent undirected graph object from igraph. Layers can be activated
@@ -491,33 +364,9 @@ class Network:
     """
     random.seed(42)
 
-    def __init__(self):
-        """ Creates a Network object.
-        """
-        self.layers = dict()
-        self.layers_labels = []
-
-    def __getitem__(self, key: str) -> Layer:
-        """ Retrives an specific layer.
-
-        Args:
-            key (str): layer name.
-
-        Returns:
-            Layer (Layer.object): Desired layer.
-        """
-        return self.layers[key]
-
-    def __setitem__(self, layer_label: str, new_layer: Layer):
-        """Adds a layer to the network.
-
-        Args:
-            layer_label (str): label of the layer.
-            new_layer (Layer.object): layer to add.
-        """
-        assert(isinstance(new_layer, Layer))
-        self.layers[layer_label] = new_layer
-        self.layers_labels.append(layer_label)
+    def __init__(self, precompute_neighbors: bool = True):
+        super().__init__()
+        self.precompute_neighbors = precompute_neighbors
 
     def add_layer(self, layer_label: str, how: str = 'barabasi',
                   filename: str = None, graph: Any = None,
@@ -559,41 +408,15 @@ class Network:
         else:
             raise NotImplementedError('Method not implemented')
 
-    def activate_layer(self, layer_label: str):
-        """ Method used to change the state of a layer to active.
-
-        Args:
-            layer_name (str): name of the layer to activate.
-
-        Raises:
-            KeyError: if layer is not found in network
-        """
-        try:
-            self.layers[layer_label].active = True
-        except KeyError:
-            raise KeyError('Layer not found in the Network')
-
-    def deactivate_layer(self, layer_label: str):
-        """ Method used to change the state of a layer to deactivated.
-
-        Args:
-            layer_name (str): name of the layer.
-
-        Raises:
-            KeyError: if layer is not found in network
-        """
-        try:
-            self.layers[layer_label].active = False
-        except KeyError:
-            raise KeyError('Layer not found in the Network')
-
-    def get_active_layers(self) -> List[Layer]:
-        """ Method that returns layers that are active.
-
-        Returns:
-            active_layers: list of Layer objects that are active.
-        """
-        return [layer for key, layer in self.layers.items() if layer.active]
+    def initialize(self, **kwargs):
+        if self.precompute_neighbors:
+            self.neighborhood_by_layer = {}
+            for layer_label, layer in self.layers.items():
+                id_seq = [v.index for v in layer.graph.vs]
+                self.neighborhood_by_layer[layer_label] = dict(zip(id_seq, layer.neighborhood(id_seq, **kwargs)))
+            self.neighborhood = {i: np.unique(
+                np.concatenate([self.neighborhood_by_layer[layer][i] for layer in self.layers_labels])) for i in id_seq}
+            #TODO: Might need to rethink if it is necessary to save neighbors across all layers
 
     def add_attributes_edges(self, layer_label: str, attr_label: str,
                              attrs: Union[list, np.ndarray],
@@ -603,8 +426,8 @@ class Network:
         set for all edges.
 
         Args:
-            layer_name (str): name of the layer.
-            attr_name (str): name of the attribute.
+            layer_label (str): name of the layer.
+            attr_label (str): name of the attribute.
             attrs (iterable): list or array with attribute values.
             edge_seq (list, optional): list containing the indices of edges.
                                        Defaults to None.
@@ -641,12 +464,12 @@ class Network:
         edge_seq_vertex_ids = [[edge.source, edge.target] for edge in edge_seq]
         return edge_seq, edge_seq_vertex_ids
 
-    def get_neighbors(self, vertex_seq: List[int] = None,
+    def get_neighborhood(self, id_seq: List[int] = None,
                       layer_label: str = None, **kwargs) -> List[List[int]]:
         """ Method used to retrieve neighbors for a vertex sequence.
 
         Args:
-            vertex_seq (list, optional): list containing the indices of the
+            id_seq (list, optional): list containing the indices of the
                                          vertices. Defaults to None.
             layer_name (str, optional): name of the layer. Defaults to None.
 
@@ -658,15 +481,20 @@ class Network:
             search_layers = self.layers_labels
         else:
             search_layers = [layer_label]
-        if isinstance(vertex_seq, type(None)):
-            vertex_seq = [v.index for v in self[search_layers[0]].graph.vs]
-        neighborhoods = list()
-        for layer in search_layers:
-            neighborhoods.append(self.layers[layer].neighbors(vertex_seq,
-                                                              **kwargs))
-        neighborhoods = [np.unique(np.concatenate([neighbors[i] for neighbors in neighborhoods]))
-                         for i in np.arange(len(vertex_seq))]  # TODO: #17 This could be done more efficiently
-        return neighborhoods
+        if isinstance(id_seq, type(None)):
+            id_seq = [v.index for v in self[search_layers[0]].graph.vs]
+        if self.precompute_neighbors:
+            if len(search_layers) == 1:
+                return [self.neighborhood_by_layer[search_layers[0]][i] for i in id_seq]
+            else:
+                return [self.neighborhood[i] for i in id_seq]
+        else:
+            neighborhoods = list()
+            for layer in search_layers:
+                neighborhoods.append(self.layers[layer].neighborhood(id_seq, **kwargs))
+            neighborhoods = [np.unique(np.concatenate([neighbors[i] for neighbors in neighborhoods]))
+                             for i in np.arange(len(id_seq))]  # TODO: #17 This could be done more efficiently
+            return neighborhoods
 
 
 class StatsCollector(SubsObject):

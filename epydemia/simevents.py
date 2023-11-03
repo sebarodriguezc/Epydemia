@@ -109,6 +109,7 @@ class ChangeState(Event):
                  idx: int):
         super().__init__(time, simulator)
         self.idx = idx
+        self.population = self.simulator.population
 
     def do(self):
         pass

@@ -61,7 +61,7 @@ class MaskingBehavior(Intervention):
 
         pop = self.simulator.population
         base_prob = 0
-        neighbors = pop.network.get_neighbors()
+        neighbors = pop.network.get_neighborhood()
         pop['sn'] = np.array(list(map(
             proportion_masked,
             list(pop for n in neighbors),

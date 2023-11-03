@@ -1,15 +1,15 @@
 import sys
 sys.path.append('../')
 import numpy as np
-from epydemia.simobjects import Disease
+from epydemia.abstractcls import AbstractDisease
 from epydemia.simevents import ChangeState
 from epydemia.basedesim import Event
 
 class SusceptibleToExposed(ChangeState):
 
     def do(self):
-        self.simulator.population.change_state(self.idx, 'covid', 'exposed')
-        time = 0.5 + self.simulator.population.diseases['covid'].stream.weibull(4.6)
+        self.population.change_state(self.idx, 'covid', 'exposed')
+        time = 0.5 + self.population.diseases['covid'].stream.weibull(4.6)
         ExposedToPresymptomatic(self.simulator.now() + time,
                                 self.simulator, self.idx)
         if self.simulator.verbose:
@@ -19,8 +19,8 @@ class SusceptibleToExposed(ChangeState):
 class SusceptibleToRecovered(ChangeState):
 
     def do(self):
-        time = self.simulator.population.diseases['covid'].stream.gamma(25, 10)
-        self.simulator.population.change_state(self.idx, 'covid', 'recovered')
+        time = self.population.diseases['covid'].stream.gamma(25, 10)
+        self.population.change_state(self.idx, 'covid', 'recovered')
         RecoveredToSusceptible(self.simulator.now() + time, self.simulator,
                                self.idx)
         if self.simulator.verbose:
@@ -31,9 +31,9 @@ class ExposedToPresymptomatic(ChangeState):
 
     def do(self):
         time = 0.5
-        self.simulator.population.change_state(self.idx, 'covid',
+        self.population.change_state(self.idx, 'covid',
                                                'presymptomatic')
-        if self.simulator.population.diseases['covid'].stream.random() < 1/3:
+        if self.population.diseases['covid'].stream.random() < 1/3:
             PresymptomaticToSymptomatic(self.simulator.now() + time,
                                         self.simulator, self.idx)
         else:
@@ -46,9 +46,9 @@ class ExposedToPresymptomatic(ChangeState):
 class PresymptomaticToSymptomatic(ChangeState):
 
     def do(self):
-        time = self.simulator.population.diseases['covid'].stream.exponential(3)
-        self.simulator.population.change_state(self.idx, 'covid', 'symptomatic')
-        if self.simulator.population.diseases['covid'].stream.random() < 0.03:
+        time = self.population.diseases['covid'].stream.exponential(3)
+        self.population.change_state(self.idx, 'covid', 'symptomatic')
+        if self.population.diseases['covid'].stream.random() < 0.03:
             SymptomaticToHospitalized(self.simulator.now() + time,
                                       self.simulator, self.idx)
         else:
@@ -57,12 +57,13 @@ class PresymptomaticToSymptomatic(ChangeState):
         if self.simulator.verbose:
             print('Agent {} became symptomatic'.format(self.idx))
 
+
 class SymptomaticToHospitalized(ChangeState):
 
     def do(self):
-        time = self.simulator.population.diseases['covid'].stream.exponential(10.4)
-        self.simulator.population.change_state(self.idx, 'covid', 'hospitalized')
-        if self.simulator.population.diseases['covid'].stream.random() < 0.2:
+        time = self.population.diseases['covid'].stream.exponential(10.4)
+        self.population.change_state(self.idx, 'covid', 'hospitalized')
+        if self.population.diseases['covid'].stream.random() < 0.2:
             HospitalizedToDeath(self.simulator.now() + time,
                                 self.simulator, self.idx)
         else:
@@ -71,11 +72,12 @@ class SymptomaticToHospitalized(ChangeState):
         if self.simulator.verbose:
             print('Agent {} was hospitalized'.format(self.idx))
 
+
 class HospitalizedToRecovered(ChangeState):
 
     def do(self):
-        self.simulator.population.change_state(self.idx, 'covid', 'recovered')
-        time = self.simulator.population.diseases['covid'].stream.gamma(25, 10)
+        self.population.change_state(self.idx, 'covid', 'recovered')
+        time = self.population.diseases['covid'].stream.gamma(25, 10)
         RecoveredToSusceptible(self.simulator.now() + time,
                                self.simulator, self.idx)
         if self.simulator.verbose:
@@ -84,7 +86,7 @@ class HospitalizedToRecovered(ChangeState):
 class HospitalizedToDeath(ChangeState):
 
     def do(self):
-        self.simulator.population.change_state(self.idx, 'covid', 'death')
+        self.population.change_state(self.idx, 'covid', 'death')
         # TODO: #16 cancel all events related to individual
         if self.simulator.verbose:
             print('Agent {} died from covid'.format(self.idx))
@@ -92,8 +94,8 @@ class HospitalizedToDeath(ChangeState):
 class PresymptomaticToAsymptomatic(ChangeState):
 
     def do(self):
-        time =self.simulator.population.diseases['covid'].stream.exponential(2)
-        self.simulator.population.change_state(self.idx, 'covid', 'asymptomatic')
+        time =self.population.diseases['covid'].stream.exponential(2)
+        self.population.change_state(self.idx, 'covid', 'asymptomatic')
         AsymptomaticToRecovered(self.simulator.now() + time,
                                 self.simulator, self.idx)
         if self.simulator.verbose:
@@ -102,8 +104,8 @@ class PresymptomaticToAsymptomatic(ChangeState):
 class SymptomaticToRecovered(ChangeState):
 
     def do(self):
-        self.simulator.population.change_state(self.idx, 'covid', 'recovered')
-        time = self.simulator.population.diseases['covid'].stream.gamma(25, 10)
+        self.population.change_state(self.idx, 'covid', 'recovered')
+        time = self.population.diseases['covid'].stream.gamma(25, 10)
         RecoveredToSusceptible(self.simulator.now() + time,
                                self.simulator, self.idx)
         if self.simulator.verbose:
@@ -112,8 +114,8 @@ class SymptomaticToRecovered(ChangeState):
 class AsymptomaticToRecovered(ChangeState):
 
     def do(self):
-        self.simulator.population.change_state(self.idx, 'covid', 'recovered')
-        time = self.simulator.population.diseases['covid'].stream.gamma(25, 10)
+        self.population.change_state(self.idx, 'covid', 'recovered')
+        time = self.population.diseases['covid'].stream.gamma(25, 10)
         RecoveredToSusceptible(self.simulator.now() + time,
                                self.simulator, self.idx)
         if self.simulator.verbose:
@@ -122,7 +124,7 @@ class AsymptomaticToRecovered(ChangeState):
 class RecoveredToSusceptible(ChangeState):
 
     def do(self):
-        self.simulator.population.change_state(self.idx, 'covid', 'susceptible')
+        self.population.change_state(self.idx, 'covid', 'susceptible')
         if self.simulator.verbose:
             print('Agent {} became susceptible'.format(self.idx))
 
@@ -131,24 +133,24 @@ class ImportCases(Event):
     def __init__(self, time, simulator, cases=1):
         super().__init__(time, simulator)
         self.time = time
-        self.simulator = simulator
+        self.population = self.simulator.population
         self.cases = cases
 
     def do(self):
-        susceptibles = self.simulator.population.get_state(
+        susceptibles = self.population.get_state(
             'covid', 'susceptible')
-        idx = self.simulator.population.diseases['covid'].stream.choice(
+        idx = self.population.diseases['covid'].stream.choice(
             susceptibles, size=self.cases, replace=False)
-        self.simulator.population.change_state(idx, 'covid', 'symptomatic')
+        self.population.change_state(idx, 'covid', 'symptomatic')
         for person in idx:
-            time = self.simulator.population.diseases['covid'].stream.exponential(5)
+            time = self.population.diseases['covid'].stream.exponential(5)
             SymptomaticToRecovered(self.simulator.now() + time,
                                    self.simulator, person)
             if self.simulator.verbose:
                 print('Agent {} got infected outside of the network'.format(person))
 
 
-class Covid(Disease):
+class Covid(AbstractDisease):
 
     # TODO: #6 states could be a class attribute instead of object
     VACCINE_STATES = {
@@ -170,7 +172,7 @@ class Covid(Disease):
                 Covid.VACCINE_STATES['not vaccinated'])
         else:
             assert(len(self['vaccine_seed']) == self.population.size)
-            self.population[self.name]= self['vaccine_seed']
+            self.population[self.label]= self['vaccine_seed']
         ImportCases(0, self.simulator, self['initial_cases'])
 
     def infect(self):
