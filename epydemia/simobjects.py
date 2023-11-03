@@ -316,7 +316,7 @@ class Population(SubsObject):
                                  for s in susceptible_states]
         infectee_state_ids = [self.disease_state_id(disease_label, s)
                               for s in infectee_states]
-
+        print('Using old')
         infected = np.where(
             np.isin(self[disease_label],
                     infectee_state_ids))[0]
