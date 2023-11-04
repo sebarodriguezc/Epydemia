@@ -206,16 +206,17 @@ class Population(SubsObject):
                         susceptible_state_ids))[0]]
         else:
             susceptibles = np.array([])
-
+        print('Susceptibles', susceptibles)
         prob_infection = []
 
         for layer in self.network.get_active_layers():
             neighborhoods = self.network.get_neighborhood(susceptibles, layer_label=layer.label)  # check mode, should be undirected graph.
-
             neighborhoods = [
                 [n for n in neighbors if self[disease_label][n] in
                  infectee_state_ids]
                 for neighbors in neighborhoods]  # This line can be improved for efficiency
+
+            print(layer.label, neighborhoods)
 
             prob_infection.append([
                 calc_prob(layer.graph.es.select(
