@@ -332,7 +332,7 @@ class Population(SubsObject):
                         susceptible_state_ids))[0]]
         else:
             susceptibles = np.array([])
-
+        print('Susceptibles', susceptibles)
         prob_infection = []
 
         for layer in self.network.get_active_layers():
@@ -343,12 +343,15 @@ class Population(SubsObject):
                  infectee_state_ids]
                 for neighbors in neighborhoods]  # This line can be improved for efficiency
 
+            print(layer.label, neighborhoods)
+
             prob_infection.append([
                 calc_prob(layer.graph.es.select(
                  _source=person, _target=neighbors)[disease_label])
                 for person, neighbors in zip(susceptibles, neighborhoods)])
 
         prob_infection = list(map(calc_prob, zip(*prob_infection)))
+        print(prob_infection)
         return susceptibles, prob_infection
 
     def get_state(self, disease_label: str, state_label: str) -> np.ndarray:
