@@ -320,6 +320,7 @@ class Population(SubsObject):
         infected = np.where(
             np.isin(self[disease_label],
                     infectee_state_ids))[0]
+        print('Infected', infected)
 
         if len(infected) > 0:
             people_at_risk = np.unique(np.concatenate(
