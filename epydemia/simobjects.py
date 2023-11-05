@@ -195,7 +195,9 @@ class Population(SubsObject):
         infected = np.where(
             np.isin(self[disease_label],
                     infectee_state_ids))[0]
+        print('Infected', infected)
         print('Using updated')
+
         if len(infected) > 0:
             people_at_risk = np.unique(np.concatenate(
                 [np.concatenate(self.network.get_neighborhood(infected, layer_label=layer.label))
@@ -224,6 +226,7 @@ class Population(SubsObject):
                 for person, neighbors in zip(susceptibles, neighborhoods)])
 
         prob_infection = list(map(calc_prob, zip(*prob_infection)))
+        print(prob_infection)
         return susceptibles, prob_infection
 
     def get_state(self, disease_label: str, state_label: str) -> np.ndarray:
