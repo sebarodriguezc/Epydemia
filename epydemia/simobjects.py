@@ -208,6 +208,7 @@ class Population(SubsObject):
         else:
             susceptibles = np.array([])
         prob_infection = []
+        print('Infected', infected)
 
         for layer in self.network.get_active_layers():
             neighborhoods = self.network.get_neighborhood(susceptibles, layer_label=layer.label)  # check mode, should be undirected graph.
