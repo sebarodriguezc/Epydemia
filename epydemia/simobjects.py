@@ -363,9 +363,8 @@ class Network(AbstractNetwork):
     """
     random.seed(42)
 
-    def __init__(self, precompute_neighbors: bool = True):
+    def __init__(self):
         super().__init__()
-        self.precompute_neighbors = precompute_neighbors
 
     def add_layer(self, layer_label: str, how: str = 'barabasi',
                   filename: str = None, graph: Any = None,
@@ -408,14 +407,14 @@ class Network(AbstractNetwork):
             raise NotImplementedError('Method not implemented')
 
     def initialize(self, **kwargs):
-        if self.precompute_neighbors:
-            self.neighborhood_by_layer = {}
-            for layer_label, layer in self.layers.items():
-                id_seq = [v.index for v in layer.graph.vs]
-                self.neighborhood_by_layer[layer_label] = dict(zip(id_seq, layer.neighborhood(id_seq, **kwargs)))
-            self.neighborhood = {i: np.unique(
-                np.concatenate([self.neighborhood_by_layer[layer][i] for layer in self.layers_labels])) for i in id_seq}
-            #TODO: Might need to rethink if it is necessary to save neighbors across all layers
+        pass
+        # if self.precompute_neighbors:
+        #     self.neighborhood_by_layer = {}
+        #     for layer_label, layer in self.layers.items():
+        #         id_seq = [v.index for v in layer.graph.vs]
+        #         self.neighborhood_by_layer[layer_label] = dict(zip(id_seq, layer.neighborhood(id_seq, **kwargs)))
+        #     self.neighborhood = {i: np.unique(
+        #         np.concatenate([self.neighborhood_by_layer[layer][i] for layer in self.layers_labels])) for i in id_seq}
 
     def add_attributes_edges(self, layer_label: str, attr_label: str,
                              attrs: Union[list, np.ndarray],

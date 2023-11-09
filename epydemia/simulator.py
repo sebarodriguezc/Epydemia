@@ -37,17 +37,19 @@ class AgentBasedSim(Simulator):
         self.verbose = True
         assert(issubclass(StepCls, Step))
         self.step = StepCls
+        self.streams = dict()
+        self.stop_time = None
 
     def run(self, stop_time: Union[float, int],
-            disease_random_seeds: List[int],
+            seeds: dict,
             verbose: bool = True):
         """ Method called to run the simulation. It can be override by
         the user to implement additional operations.
 
         Args:
             stop_time (float): time until simulation is run. If an infinity
-                                value is given, the simulaton will run until
-                                no more events are schedulled.
+                                value is given, the simulation will run until
+                                no more events are scheduled.
             verbose (bool, optional): parameter used to activate the printing
                                       across the simulation. Defaults to True.
             seeds (tuple, optional): _description_. Defaults to (1024,).
@@ -57,13 +59,18 @@ class AgentBasedSim(Simulator):
         self.stop_time = stop_time
         
         # Setup diseases
-        assert(len(disease_random_seeds) == len(self.population.diseases))
-        for seed, (_, disease) in zip(disease_random_seeds,
-                                      self.population.diseases.items()):
-            disease.set_stream(Stream(seed))
-            disease.initialize()
+        try:
+            for disease_label, disease in self.population.diseases.items():
+                disease.set_stream(Stream(seeds.pop(disease_label)))
+                disease.initialize()
+        except:
+            raise ValueError('A random seed for each disease must be given.')
 
-        # Inittialize network
+        #Setup rest of streams
+        for key, seed in seeds.items():
+            self.streams[key] = Stream(seed)
+
+        # Initialize network
         self.population.network.initialize()
 
         # Schedule interventions
@@ -78,7 +85,7 @@ class AgentBasedSim(Simulator):
                           population_size: int = None,
                           population_random_seed: int = 3069,
                           network_random_seed: int = 2048,
-                          pop_attributes: dict = {},
+                          pop_attributes: dict = dict(),
                           filename: str = None, **network_kwargs):
         """ Method used to create a population. There are several ways
         on building one:
