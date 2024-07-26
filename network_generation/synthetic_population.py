@@ -298,6 +298,7 @@ def create_community_graph(population, p,
 
 
 # %%
+'''
 if __name__ == '__main__':
     pop = create_population('./data/pop.csv', 500)
     pop = add_households(pop, './data/household_size.csv', './data/household.csv')
@@ -324,3 +325,4 @@ if __name__ == '__main__':
     colors_dict = {w: c for c, w in zip(['white', 'blue', 'orange', 'black', 'purple'], pop.workplace.unique())}
     colors = [colors_dict[row['workplace']] for i,row in pop.iterrows()]
     ig.plot(g, vertex_size=10, edge_width=0.5, vertex_color=colors)
+'''

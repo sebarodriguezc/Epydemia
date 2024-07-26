@@ -208,7 +208,6 @@ class Population(SubsObject):
             susceptibles = np.array([])
 
         prob_infection = []
-        print('Infected', infected)
 
         for layer in self.network.get_active_layers():
             neighborhoods = self.network.get_neighborhood(susceptibles, layer_label=layer.label)  # check mode, should be undirected graph.
@@ -481,18 +480,18 @@ class Network(AbstractNetwork):
             search_layers = [layer_label]
         if isinstance(id_seq, type(None)):
             id_seq = [v.index for v in self[search_layers[0]].graph.vs]
-        if self.precompute_neighbors:
-            if len(search_layers) == 1:
-                return [self.neighborhood_by_layer[search_layers[0]][i] for i in id_seq]
-            else:
-                return [self.neighborhood[i] for i in id_seq]
-        else:
-            neighborhoods = list()
-            for layer in search_layers:
-                neighborhoods.append(self.layers[layer].neighborhood(id_seq, **kwargs))
-            neighborhoods = [np.unique(np.concatenate([neighbors[i] for neighbors in neighborhoods]))
-                             for i in np.arange(len(id_seq))]  # TODO: #17 This could be done more efficiently
-            return neighborhoods
+        # if self.precompute_neighbors:
+        #     if len(search_layers) == 1:
+        #         return [self.neighborhood_by_layer[search_layers[0]][i] for i in id_seq]
+        #     else:
+        #         return [self.neighborhood[i] for i in id_seq]
+        # else:
+        neighborhoods = list()
+        for layer in search_layers:
+            neighborhoods.append(self.layers[layer].neighborhood(id_seq, **kwargs))
+        neighborhoods = [np.unique(np.concatenate([neighbors[i] for neighbors in neighborhoods]))
+                         for i in np.arange(len(id_seq))]  # TODO: #17 This could be done more efficiently
+        return neighborhoods
 
 
 class StatsCollector(SubsObject):
@@ -505,3 +504,9 @@ class StatsCollector(SubsObject):
 
     def clear(self):
         self.attributes = {}
+
+    def dump(self, label: str):
+        return self[label]
+
+    def dump_all(self):
+        return self.attributes
