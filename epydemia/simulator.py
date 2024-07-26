@@ -7,7 +7,7 @@ import random
 import numpy as np
 import pandas as pd
 from typing import Type, Union, List
-
+from copy import deepcopy
 
 class AgentBasedSim(Simulator):
     """ Main simulation class. A AgentBasedSim object is used to handle
@@ -97,7 +97,7 @@ class AgentBasedSim(Simulator):
                             Proportions must be defined in a file 
                             specifying attribute's name and possible
                             values.
-        - 'from_csv-: using a csv file where columns are attributes.
+        - 'from_csv': using a csv file where columns are attributes.
 
         Args:
             how (str, optional): . Defaults to 'basic'.
@@ -209,3 +209,8 @@ class AgentBasedSim(Simulator):
         if 'n' not in kwargs:
             kwargs['n'] = self.population.size
         self.population.network.add_layer(layer_label=layer_label, **kwargs)
+
+    def dump_stats(self):
+        stats = deepcopy(self.collector.dump_all())
+        self.collector.clear()
+        return stats
