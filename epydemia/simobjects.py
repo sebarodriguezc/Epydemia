@@ -415,13 +415,14 @@ class Network(AbstractNetwork):
             raise NotImplementedError('Method not implemented')
 
     def initialize(self, **kwargs):
-        if self.precompute_neighbors:
-            self.neighborhood_by_layer = {}
-            for layer_label, layer in self.layers.items():
-                id_seq = [v.index for v in layer.graph.vs]
-                self.neighborhood_by_layer[layer_label] = dict(zip(id_seq, layer.neighborhood(id_seq, **kwargs)))
-            self.neighborhood = {i: np.unique(
-                np.concatenate([self.neighborhood_by_layer[layer][i] for layer in self.layers_labels])) for i in id_seq}
+        pass
+        # if self.precompute_neighbors:
+        #     self.neighborhood_by_layer = {}
+        #     for layer_label, layer in self.layers.items():
+        #         id_seq = [v.index for v in layer.graph.vs]
+        #         self.neighborhood_by_layer[layer_label] = dict(zip(id_seq, layer.neighborhood(id_seq, **kwargs)))
+        #     self.neighborhood = {i: np.unique(
+        #         np.concatenate([self.neighborhood_by_layer[layer][i] for layer in self.layers_labels])) for i in id_seq}
 
     def add_attributes_edges(self, layer_label: str, attr_label: str,
                              attrs: Union[list, np.ndarray],
@@ -488,18 +489,18 @@ class Network(AbstractNetwork):
             search_layers = [layer_label]
         if isinstance(id_seq, type(None)):
             id_seq = [v.index for v in self[search_layers[0]].graph.vs]
-        if self.precompute_neighbors:
-            if len(search_layers) == 1:
-                return [self.neighborhood_by_layer[search_layers[0]][i] for i in id_seq]
-            else:
-                return [self.neighborhood[i] for i in id_seq]
-        else:
-            neighborhoods = list()
-            for layer in search_layers:
-                neighborhoods.append(self.layers[layer].neighborhood(id_seq, **kwargs))
-            neighborhoods = [np.unique(np.concatenate([neighbors[i] for neighbors in neighborhoods]))
-                             for i in np.arange(len(id_seq))]  # TODO: #17 This could be done more efficiently
-            return neighborhoods
+        # if self.precompute_neighbors:
+        #     if len(search_layers) == 1:
+        #         return [self.neighborhood_by_layer[search_layers[0]][i] for i in id_seq]
+        #     else:
+        #         return [self.neighborhood[i] for i in id_seq]
+        # else:
+        neighborhoods = list()
+        for layer in search_layers:
+            neighborhoods.append(self.layers[layer].neighborhood(id_seq, **kwargs))
+        neighborhoods = [np.unique(np.concatenate([neighbors[i] for neighbors in neighborhoods]))
+                         for i in np.arange(len(id_seq))]  # TODO: #17 This could be done more efficiently
+        return neighborhoods
 
 
 class StatsCollector(SubsObject):
@@ -512,3 +513,9 @@ class StatsCollector(SubsObject):
 
     def clear(self):
         self.attributes = {}
+
+    def dump(self, label: str):
+        return self[label]
+
+    def dump_all(self):
+        return self.attributes

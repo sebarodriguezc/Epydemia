@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from typing import Type, Union, List, Optional
 from . import StreamsManager
+from copy import deepcopy
 
 
 class AgentBasedSim(Simulator):
@@ -213,3 +214,8 @@ class AgentBasedSim(Simulator):
         except AssertionError:
             raise TypeError('Class must be inherit from the Intervention class.')
         self.pre_schedule_event(event_cls, time=time, **event_kwargs)
+
+    def dump_stats(self):
+        stats = deepcopy(self.collector.dump_all())
+        self.collector.clear()
+        return stats
