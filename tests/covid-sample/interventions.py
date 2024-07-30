@@ -99,9 +99,9 @@ class MaskingBehavior(Intervention):
 class Quarantine(Intervention):
     '''docstring'''
 
-    def __init__(self, time, simulator, idx, length=5):
+    def __init__(self, simulator, time,  idx, length=5):
         # TODO: #13 Rethink how interventions are defined in terms of args
-        super().__init__(time, simulator)
+        super().__init__(simulator, time)
         self.idx = idx
         self.length = length
 
@@ -120,9 +120,9 @@ class Quarantine(Intervention):
 
 class EndQuarantine(Intervention):
 
-    def __init__(self, time, simulator, idx):
+    def __init__(self, simulator, time,  idx):
         # TODO: #13 Rethink how interventions are defined in terms of args
-        super().__init__(time, simulator)
+        super().__init__(simulator, time)
         self.idx = idx
 
     def do(self):
@@ -134,9 +134,9 @@ class Vaccination(Intervention):
     '''docstring'''
     VACCINE_DELAY = 0
 
-    def __init__(self, time, simulator, disease_name,
+    def __init__(self, simulator, time, disease_name,
                  target_func=None, **target_kwargs):
-        super().__init__(time + Vaccination.VACCINE_DELAY, simulator)
+        super().__init__(simulator, time + Vaccination.VACCINE_DELAY)
         self.disease_name = disease_name
         self.target_kwargs = target_kwargs
         self.target_func = target_func
@@ -159,5 +159,5 @@ class Vaccination(Intervention):
         self.simulator.population[self.disease_name][
                 'covid_vaccine'][target_idx] = self.simulator.population.diseases[
                     self.disease_name].VACCINE_STATES['vaccinated']
-        SusceptibleToRecovered(self.simulator.now(),
-                               self.simulator, target_idx)
+        SusceptibleToRecovered(self.simulator, self.simulator.now(),
+                                target_idx)

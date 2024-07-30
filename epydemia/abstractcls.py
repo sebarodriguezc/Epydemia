@@ -41,7 +41,6 @@ class AbstractNetwork(ABC):
         assert(isinstance(new_layer, AbstractLayer))
         self.layers[layer_label] = new_layer
         self.layers_labels.append(layer_label)
-
     def activate_layer(self, layer_label: str):
         """ Method used to change the state of a layer to active.
 
@@ -87,8 +86,7 @@ class AbstractNetwork(ABC):
         pass
 
     @abstractmethod
-    def get_neighborhood(self, id_seq: List[int] = None,
-                      layer_label: str = None, **kwargs) -> List[List[int]]:
+    def get_neighborhood(self, id_seq: List[int] = None, layer_label: str = None, **kwargs) -> List[List[int]]:
         pass
 
 
@@ -106,7 +104,7 @@ class AbstractDisease(SubsObject, ABC):
         ABC (class): Python's built-in abstract class.
     """
 
-    def __init__(self, label: str, simulator: Simulator,
+    def __init__(self, simulator: Simulator, label: str,
                  infection_prob: float, states: List[str],
                  **attributes: Any):
         """ Method that creates a disease object.

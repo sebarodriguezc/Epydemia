@@ -1,5 +1,5 @@
 from . import SubsObject
-from typing import Any, Union, List, Tuple
+from typing import Any, Union, List, Tuple, Optional
 import igraph as ig
 import numpy as np
 import random
@@ -18,7 +18,7 @@ class Population(SubsObject):
     accordingly.
     """
 
-    def __init__(self, population_size: int, attributes: dict[str, Any] = {}, **network_kwargs):
+    def __init__(self, population_size: int, attributes: dict[str, Any] = None, **network_kwargs):
         """ When initializing a Population object, a population size
         is needed. Any desired attributes must be given initially as
         a dictionary, where keys are an attribute's name and attribute
@@ -37,6 +37,18 @@ class Population(SubsObject):
         self.network = Network(**network_kwargs)
         self.size = population_size
         self.diseases = {}
+        self.diseases_initial_states = {}
+
+    def initialize(self):
+        for disease_label, disease in self.diseases.items():
+            self[disease_label] = self.diseases_initial_states[disease_label].copy()
+
+            # Add probability of infection to the network
+            for layer_label in self.network.layers.keys():
+                self.network.add_attributes_edges(layer_label,
+                                                  disease_label,
+                                                  disease['infection_prob'])
+        self.network.initialize()
 
     def add_attribute(self, attribute_label: str,
                       values: Any):
@@ -57,8 +69,8 @@ class Population(SubsObject):
                     .format(values.shape, self.size))
         self[attribute_label] = values
 
-    def introduce_disease(self, disease: AbstractDisease, states_seed: int = None,
-                          initial_state: str = 'susceptible'):
+    def introduce_disease(self, disease: AbstractDisease,
+                          initial_state: Optional[Union[list, str]] = 'susceptible'):
         """ Method used to introduce a disease in the population. It creates
         the data structures needed to keep track of each agent's disease
         state.
@@ -89,22 +101,17 @@ class Population(SubsObject):
         self[disease.label] = {}
 
         # Initialize states based on seed or an initial state
-        if isinstance(states_seed, type(None)):
+        if isinstance(initial_state, str):
             try:
-                self[disease.label] = \
-                    np.full(self.size, disease.state_id(initial_state))
+                self.diseases_initial_states[disease.label] = np.full(self.size, disease.state_id(initial_state))
             except KeyError:
                 raise KeyError("'{}' is not a state of {}".format(
                     initial_state, disease.label))
         else:
-            assert(len(states_seed) == self.size)
-            self[disease.label] = \
-                np.array([disease.state_id(s) for s in states_seed])
+            assert(len(initial_state) == self.size)
+            self.diseases_initial_states[disease.label] = np.array([disease.state_id(s) for s in initial_state])
 
-        # Add probability of infection to the network
-        for layer_label in self.network.layers.keys():
-            self.network.add_attributes_edges(layer_label, disease.label,
-                                              disease['infection_prob'])
+
 
     '''
     def __get_suceptible_prob(self, disease_name):
@@ -363,8 +370,9 @@ class Network(AbstractNetwork):
     """
     random.seed(42)
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
+        self.precompute_neighbors = False
 
     def add_layer(self, layer_label: str, how: str = 'barabasi',
                   filename: str = None, graph: Any = None,
@@ -407,14 +415,13 @@ class Network(AbstractNetwork):
             raise NotImplementedError('Method not implemented')
 
     def initialize(self, **kwargs):
-        pass
-        # if self.precompute_neighbors:
-        #     self.neighborhood_by_layer = {}
-        #     for layer_label, layer in self.layers.items():
-        #         id_seq = [v.index for v in layer.graph.vs]
-        #         self.neighborhood_by_layer[layer_label] = dict(zip(id_seq, layer.neighborhood(id_seq, **kwargs)))
-        #     self.neighborhood = {i: np.unique(
-        #         np.concatenate([self.neighborhood_by_layer[layer][i] for layer in self.layers_labels])) for i in id_seq}
+        if self.precompute_neighbors:
+            self.neighborhood_by_layer = {}
+            for layer_label, layer in self.layers.items():
+                id_seq = [v.index for v in layer.graph.vs]
+                self.neighborhood_by_layer[layer_label] = dict(zip(id_seq, layer.neighborhood(id_seq, **kwargs)))
+            self.neighborhood = {i: np.unique(
+                np.concatenate([self.neighborhood_by_layer[layer][i] for layer in self.layers_labels])) for i in id_seq}
 
     def add_attributes_edges(self, layer_label: str, attr_label: str,
                              attrs: Union[list, np.ndarray],

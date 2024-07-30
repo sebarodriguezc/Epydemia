@@ -1,4 +1,5 @@
 from . import Event, Simulator
+from . import AbstractDisease
 import numpy as np
 from typing import Union
 
@@ -16,7 +17,7 @@ class Step(Event):
     class defined in the special_events module.
     """
 
-    def __init__(self, time: Union[float, int], simulator: Simulator):
+    def __init__(self, simulator: Simulator, time: Union[float, int]):
         """ As the Step class inherits from the Event class, it requires
         an event time and a simulator object. This method can be
         override by the user.
@@ -25,7 +26,7 @@ class Step(Event):
             time (_type_): _description_
             simulator (_type_): _description_
         """
-        super().__init__(time, simulator)
+        super().__init__(simulator, time)
 
     def do(self):
         """ Method used to execute the logic of the step. Must be
@@ -63,18 +64,19 @@ class Intervention(Event):
         Event (_type_): _description_
     """
 
-    def __init__(self, time: Union[int, float], simulator: Simulator,
+    def __init__(self, simulator: Simulator, time: Union[int, float],
                  **kwargs):
         """ Intervention is initalized as an event requiring a time to be
-        executed and a simulator object. Kwargs are saved as a dict for used
-        when executing event.
+        executed and a simulato/r object. Kwargs are saved as a dict for used
+        when executing event.78
 
         Args:
             time (float): Simulation time at which event will be executed.
             simulator (_type_): _description_
         """
-        super().__init__(time, simulator)
+        super().__init__(simulator, time)
         self.kwargs = kwargs
+        #TODO: add access to population and network through attributes.
 
     def do(self):
         """ Must override this method with the desired intervention's logic
@@ -89,14 +91,14 @@ class SampleDailyStep(Step):
 
     STEP_SIZE = 1
 
-    def __init__(self, time: Union[float, int], simulator: Simulator):
-        super().__init__(time, simulator)
+    def __init__(self, simulator: Simulator, time: Union[float, int]):
+        super().__init__(simulator, time)
 
     @classmethod
     def initialize(cls, simulator: Simulator):
         for t in np.arange(0, int(simulator.stop_time)+1,
                            SampleDailyStep.STEP_SIZE):
-            SampleDailyStep(t, simulator)
+            SampleDailyStep(simulator, t)
 
     def do(self):
         for _, disease in self.simulator.population.diseases.items():
@@ -105,11 +107,31 @@ class SampleDailyStep(Step):
 
 class ChangeState(Event):
 
-    def __init__(self, time: Union[float, int], simulator: Simulator,
-                 idx: int):
-        super().__init__(time, simulator)
+    def __init__(self, simulator: Simulator, time: Union[float, int], idx: int):
+        super().__init__(simulator, time)
         self.idx = idx
         self.population = self.simulator.population
 
     def do(self):
         pass
+
+class ImportCases(Event):
+
+    def __init__(self, simulator: Simulator, time: Union[float, int],
+                 disease_label: str, change_state_event: ChangeState.__class__,
+                 num_cases: int):
+        super().__init__(simulator, time)
+        self.time = time
+        self.population = self.simulator.population
+        self.num_cases = num_cases
+        self.disease_label = disease_label
+        self.change_state_event = change_state_event
+
+    def do(self):
+        susceptibles = self.population.get_state(self.disease_label, 'susceptible')
+        idx = self.simulator.streams[self.disease_label].choice(
+            susceptibles, size=self.num_cases, replace=False)
+        for person in idx:
+            self.change_state_event(self.simulator, self.simulator.now(), person)
+            if self.simulator.verbose:
+                print('Agent {} got infected outside of the network'.format(person))

@@ -1,20 +1,21 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from typing import Any, Union, Self, Callable, List
+from typing import Any, Union, Self, Callable, List, Optional
 
 
 class SubsObject:
     """Definition of a subscriptable object to allow access to attributes
     using labels.
     """
-    def __init__(self, attributes: dict = {}):
+    def __init__(self, attributes: Optional[dict] = None):
         """
         Args:
             attributes (dict, optional): dictionary with attributes. Defaults to {}.
         """
         self.attributes = {}
-        for key, value in attributes.items():
-            self.__setitem__(key, value)
+        if attributes is not None:
+            for key, value in attributes.items():
+                self.__setitem__(key, value)
 
     def __getitem__(self, key: str) -> Any:
         """Override of magic method
@@ -28,14 +29,80 @@ class SubsObject:
 
         return self.attributes[key]
 
-    def __setitem__(self, key: str, newvalue: Any):
+    def __setitem__(self, key: str, new_value: Any):
+        """Override of magic method
+
+        Args:
+            key (str): attribute's key
+            new_value (Any): attribute object
+        """
+        self.attributes[key] = new_value
+
+
+class Stream(np.random.RandomState):
+    """ Class that defines a stream of pseudo-random numbers. It inherits from
+    numpy's RandomState class which is used to sample random numbers from
+    several probability distributions.
+
+    Args:
+        np.random.RandomState (class): numpy's random state class.
+    """
+
+    def __init__(self, seed: int):
+        """ Stream object must be initialized using a seed.
+
+        Args:
+            seed (int): pseudo-random generator seed.
+        """
+        super().__init__(seed=seed)
+        self.random_seed = seed
+
+    def reset(self):
+        self.seed(self.random_seed)
+
+    def reseed(self, seed: int):
+        self.random_seed = seed
+        self.reset()
+
+
+class StreamsManager:
+
+    def __init__(self, labels: Optional[Union[list, dict]] = None):
+        if type(labels) == list:
+            self.streams = {label: Stream(seed=0) for label in labels}
+        elif type(labels) == dict:
+            self.streams = {label: Stream(seed=seed) for label, seed in labels.items()}
+        else:
+            self.streams = {}
+
+    def __getitem__(self, key: str) -> Any:
+        """Override of magic method
+
+        Args:
+            key (str): attribute's key
+
+        Returns:
+            Any: attribute object requested
+        """
+
+        return self.streams[key]
+
+    def __setitem__(self, key: str, new_value: Stream):
         """Override of magic method
 
         Args:
             key (str): attribute's key
             newvalue (Any): attribute object
         """
-        self.attributes[key] = newvalue
+        self.streams[key] = new_value
+
+    def reset_streams(self):
+        for key, stream in self.streams.items():
+            stream.reset()
+
+    def reseed(self, new_seed: dict):
+        for label, seed in new_seed.items():
+            self.streams[label].reseed(seed)
 
 
 class Simulator(ABC):
@@ -44,14 +111,30 @@ class Simulator(ABC):
     of the simulation.
     """
 
-    def __init__(self):
+    def __init__(self, streams: Optional[StreamsManager] = None):
         """ A simulator object is initialized with an empty scheduler and
         with a current simulation time of 0.
         """
+        if streams is None:
+            self.streams = StreamsManager()
+        else:
+            self.streams = streams
         self.events = Scheduler()
-        self.sim_time = 0
+        self.pre_scheduled_events = []
+        self.sim_time = np.nan
+        self.params = {}
+        self.verbose = False
 
-    def run(self, stop_time: Union[float, int] = float('inf')):
+    def _initialize(self, seeds: Optional[dict] = None):
+        self.clear()
+        self.sim_time = 0
+        for EventCls, kwargs in self.pre_scheduled_events:
+            EventCls(self, **kwargs)
+        if seeds is not None:
+            self.streams.reseed(seeds)
+
+    def run(self, stop_time: Union[float, int], seeds: Optional[dict] = None,
+            verbose: bool = False):
         """ Main method used to run a simulation. It is used to execute all
         events until:
         i) a specified stopping time or
@@ -62,15 +145,15 @@ class Simulator(ABC):
             stop_time (float, optional): simulation stopping time.
                                          Defaults to float('inf').
         """
-        self.sim_time = 0
-        while (self.events.size() > 0):
+        self.verbose = verbose
+        self._initialize(seeds=seeds)
+        while self.events.size() > 0:
             self.sim_time = self.events.next_event().time
             if self.sim_time <= stop_time:
                 self.events.do_next()
             else:
                 self.sim_time = stop_time
                 break
-        self.events.clear()
 
     def now(self) -> float:
         """ Method used to return the current simulation time.
@@ -80,17 +163,36 @@ class Simulator(ABC):
         """
         return self.sim_time
 
+    def clear(self):
+        self.streams.reset_streams()
+        self.events.clear()
+
+    def get_stream(self, label: str):
+        return self.streams[label]
+
+    def set_stream(self, label: str, seed: int):
+        self.streams[label] = Stream(seed=seed)
+
+    def pre_schedule_event(self, event_cls, **kwargs):
+        self.pre_scheduled_events.append((event_cls, kwargs))
+
+    def set_param(self, label: str, param: Any):
+        self.params[label] = param
+
+
 
 class Event(ABC):
-    """Abstract event class to use in a discrete simulation framework.
+    """
+    Abstract event class to use in a discrete simulation framework.
     User-defined events must inherit from this class.
 
     Args:
         ABC (class): implementation of python's abstract class
     """
 
-    def __init__(self, time: Union[int, float], simulator: Simulator):
-        """Event object initialization. The creation of an event must be
+    def __init__(self, simulator: Simulator, time: Union[int, float]):
+        """
+        Event object initialization. The creation of an event must be
         preceded by the definition of a simulator object, which must be
         passed as an argument along with an event time. Upon creation of
         the event object, it is added to the simulator's event lists.
@@ -105,7 +207,8 @@ class Event(ABC):
         self.simulator.events.add_event(self)
 
     def __lt__(self, other_event: Self) -> bool:
-        """Override of magic method to allow comparison of events using
+        """
+        Override of magic method to allow comparison of events using
         their execution time.
 
         Args:
@@ -118,7 +221,8 @@ class Event(ABC):
         return self.time < other_event.time
 
     def __gt__(self, other: Self) -> bool:
-        """Override of magic method to allow comparison of events using
+        """
+        Override of magic method to allow comparison of events using
         their execution time.
 
         Args:
@@ -182,7 +286,7 @@ class Scheduler:
         self.events_list.remove(event)
 
     def clear(self):
-        """ Method used to clear the events list from all schedulled events.
+        """ Method used to clear the events list from all scheduled events.
         """
         self.events_list = list()
 
@@ -235,25 +339,3 @@ class Scheduler:
         except AssertionError:
             raise ValueError('Condition must be a callable function.')
         return [e for e in self.events_list if condition(e)]
-
-
-class Stream(np.random.RandomState):
-    """ Class that defines a stream of pseudo-random numbers. It inherits from
-    numpy's RandomState class which is used to sample random numbers from
-    several probability distributions.
-
-    Args:
-        np.random.RandomState (class): numpy's random state class.
-    """
-
-    def __init__(self, seed: int):
-        """ Stream object must be initialized using a seed.
-
-        Args:
-            seed (int): pseudo-random generator seed.
-        """
-        super().__init__(seed=seed)
-        self.random_seed = seed
-
-    def reset(self):
-        self.seed(self.random_seed)

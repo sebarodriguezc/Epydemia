@@ -7,13 +7,13 @@ class DailyStep(Step):
     ''' Disease progression '''
     STEP_SIZE = 1 # Daily time step
 
-    def __init__(self, time, simulator):
-        super().__init__(time, simulator)
+    def __init__(self, simulator, time):
+        super().__init__(simulator, time)
 
     @classmethod
     def initialize(cls, simulator):
         for t in np.arange(0, int(simulator.stop_time)+1, DailyStep.STEP_SIZE):
-            DailyStep(t, simulator)
+            DailyStep(simulator, t)
 
     def do(self):
         if self.simulator.verbose:
