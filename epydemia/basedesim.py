@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from typing import Any, Union, Self, Callable, List, Optional
-
+from datetime import datetime
+import pickle
 
 class SubsObject:
     """Definition of a subscriptable object to allow access to attributes
@@ -104,6 +105,10 @@ class StreamsManager:
         for label, seed in new_seed.items():
             self.streams[label].reseed(seed)
 
+    def generate_seeds(self, labels: List[str], n_seeds: int, start: Optional[int] = 0):
+        arr = np.array_split(np.arange(start, len(labels)*n_seeds), len(labels))
+        return [{label: arr[j][i] for j, label in enumerate(labels)} for i in range(n_seeds)]
+
 
 class Simulator(ABC):
     """ Abstract class that governs the discrete event simulation framework.
@@ -178,6 +183,9 @@ class Simulator(ABC):
 
     def set_param(self, label: str, param: Any):
         self.params[label] = param
+
+    def dump_stats(self):
+        pass #TODO: Implement a collector class that dumps stats here.
 
 
 
@@ -339,3 +347,25 @@ class Scheduler:
         except AssertionError:
             raise ValueError('Condition must be a callable function.')
         return [e for e in self.events_list if condition(e)]
+
+
+class Experiment:
+
+    def __init__(self, sim: Simulator, experiment_name: str):
+        self.sim = sim
+        self.experiment_name = experiment_name
+        self.results = []
+
+    def run(self, stop_time: Union[int, float], n_replicas: int, seeds: list,
+            verbose: bool = True):
+        assert len(seeds) == n_replicas, 'Seeds must be provided for all replicas'
+        for k in range(n_replicas):
+            self.sim.run(stop_time=stop_time, seeds=seeds[k], verbose=verbose)
+            self.results.append(self.sim.dump_stats())
+        return self.results
+
+    def save(self, save_dir: str, add_timestamp: bool = True, timestamp_format: str ="%Y%m%d_%H%M%S"):
+        save_dir = save_dir if save_dir.endswith('/') else save_dir + '/'
+        filename = f'{save_dir}{self.experiment_name}_{datetime.now().strftime(timestamp_format)}.pickle' if add_timestamp else f'{save_dir}{self.experiment_name}.pickle'
+        with open(filename, 'wb') as handle:
+            pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)

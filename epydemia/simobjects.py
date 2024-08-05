@@ -44,7 +44,7 @@ class Population(SubsObject):
             self[disease_label] = self.diseases_initial_states[disease_label].copy()
 
             # Add probability of infection to the network
-            for layer_label in self.network.layers.keys():
+            for layer_label in self.network.layers.keys(): #TODO: This must be moved to an abstract function in the network
                 self.network.add_attributes_edges(layer_label,
                                                   disease_label,
                                                   disease['infection_prob'])
@@ -283,7 +283,7 @@ class Population(SubsObject):
         if isinstance(layer_labels, type(None)):
             layer_labels = self.network.layers.keys()
 
-        for layer_label in layer_labels:
+        for layer_label in layer_labels: #TODO: This must be moved to an abstract method in Network
             es, es_vertex_ids = self.network.get_edges(layer_label,
                                                        target_vertex_seq)
             for disease_label in disease_labels:
@@ -372,7 +372,9 @@ class Network(AbstractNetwork):
 
     def __init__(self, **kwargs):
         super().__init__()
-        self.precompute_neighbors = False
+        self.precompute_neighbors = True
+        self.neighborhoods_by_layer = dict()
+        self.neighborhoods = dict()
 
     def add_layer(self, layer_label: str, how: str = 'barabasi',
                   filename: str = None, graph: Any = None,
@@ -415,14 +417,16 @@ class Network(AbstractNetwork):
             raise NotImplementedError('Method not implemented')
 
     def initialize(self, **kwargs):
-        pass
-        # if self.precompute_neighbors:
-        #     self.neighborhood_by_layer = {}
-        #     for layer_label, layer in self.layers.items():
-        #         id_seq = [v.index for v in layer.graph.vs]
-        #         self.neighborhood_by_layer[layer_label] = dict(zip(id_seq, layer.neighborhood(id_seq, **kwargs)))
-        #     self.neighborhood = {i: np.unique(
-        #         np.concatenate([self.neighborhood_by_layer[layer][i] for layer in self.layers_labels])) for i in id_seq}
+        if self.precompute_neighbors:
+            self.neighborhoods_by_layer = dict()
+            unique_ids = set()
+            for layer_label, layer in self.layers.items():
+                id_seq = [v.index for v in layer.graph.vs]
+                unique_ids.update(set(id_seq))
+                self.neighborhoods_by_layer[layer_label] = dict(zip(id_seq, layer.neighborhood(id_seq, **kwargs)))
+            self.neighborhoods = {
+                i: np.unique(np.concatenate([self.neighborhoods_by_layer[layer][i] for layer in self.layers_labels]))
+                for i in unique_ids}
 
     def add_attributes_edges(self, layer_label: str, attr_label: str,
                              attrs: Union[list, np.ndarray],
@@ -489,18 +493,18 @@ class Network(AbstractNetwork):
             search_layers = [layer_label]
         if isinstance(id_seq, type(None)):
             id_seq = [v.index for v in self[search_layers[0]].graph.vs]
-        # if self.precompute_neighbors:
-        #     if len(search_layers) == 1:
-        #         return [self.neighborhood_by_layer[search_layers[0]][i] for i in id_seq]
-        #     else:
-        #         return [self.neighborhood[i] for i in id_seq]
-        # else:
-        neighborhoods = list()
-        for layer in search_layers:
-            neighborhoods.append(self.layers[layer].neighborhood(id_seq, **kwargs))
-        neighborhoods = [np.unique(np.concatenate([neighbors[i] for neighbors in neighborhoods]))
-                         for i in np.arange(len(id_seq))]  # TODO: #17 This could be done more efficiently
-        return neighborhoods
+        if self.precompute_neighbors:
+            if len(search_layers) == 1:
+                return [self.neighborhoods_by_layer[search_layers[0]][i] for i in id_seq]
+            else:
+                return [self.neighborhoods[i] for i in id_seq]
+        else:
+            neighborhoods = list()
+            for layer in search_layers:
+                neighborhoods.append(self.layers[layer].neighborhood(id_seq, **kwargs))
+            neighborhoods = [np.unique(np.concatenate([neighbors[i] for neighbors in neighborhoods]))
+                             for i in np.arange(len(id_seq))]  # TODO: #17 This could be done more efficiently
+            return neighborhoods
 
 
 class StatsCollector(SubsObject):
