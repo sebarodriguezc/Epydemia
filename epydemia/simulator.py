@@ -115,7 +115,6 @@ class AgentBasedSim(Simulator):
             NotImplementedError
         """
 
-        random.seed(network_random_seed)  # igraph seed
         stream = Stream(population_random_seed)
         if how == 'basic':
             self.population = Population(population_size, **network_kwargs)
@@ -189,16 +188,6 @@ class AgentBasedSim(Simulator):
         self.population.introduce_disease(disease_cls(self, **disease_kwargs), initial_state=initial_state)
         #TODO: Event of new cases must be created separately. Create a utility event for this ImportCases(disease_label, num_cases)
 
-    def add_layer(self, layer_label: str, **kwargs):
-        """ Method used to add a layer to the populaton network.
-        Arguments to define how the layer is created are passed as kwargs.
-
-        Args:
-            layer_label (str): name of the layer.
-        """
-        if 'n' not in kwargs:
-            kwargs['n'] = self.population.size
-        self.population.network.add_layer(layer_label=layer_label, **kwargs)
 
     def add_event(self, event_cls: Type[Event], time: Union[float, int], **event_kwargs):
         """ Method used to schedule an intervention. An intervention class

@@ -5,28 +5,27 @@ sys.path.append('/covid-sample/')
 import importlib
 import epydemia as epy
 importlib.reload(epy)
+import matplotlib.pyplot as plt
+import time
 import numpy as np
 from covid import Covid, ImportCases
 from interventions import Masking, MaskingBehavior, Vaccination
 from step import DailyStep
 
-
 #%%
 if __name__ == '__main__':
+    sim = epy.AgentBasedSim(DailyStep)
+
     # Initialize model
     simulate_for = 20
     pop_size = 50
 
-    sim = epy.AgentBasedSim(DailyStep)
-    network = epy.Network(precompute_neighbors=True, seed=0)
-    network.add_layer(layer_label='community', how='erdos_renyi', n=pop_size, p=0.05)
     sim.create_population(
         how='proportion_file',
         population_size=pop_size,
         network_seed=1024,
         population_seed=10753,
-        filename='../../data/population.csv',
-        network=network)
+        filename='../../data/population.csv')
 
     # Behavioral parameters
     stream = epy.Stream(seed=3654)
@@ -40,6 +39,10 @@ if __name__ == '__main__':
     # Masking parameters
     sim.population.add_attribute('masking', np.zeros(pop_size))
     sim.population.add_attribute('vaccination', np.zeros(pop_size))
+
+    # Create layers of network
+    # sim.add_layer(layer_name='community', how='barabasi', n=pop_size, m=10)
+    sim.add_layer(layer_label='community', how='erdos_renyi', n=pop_size, p=0.05)
 
     # Define disease
     states = ['susceptible', 'exposed', 'presymptomatic', 'symptomatic',
@@ -67,11 +70,28 @@ if __name__ == '__main__':
     sim.add_intervention(Vaccination, 55, disease_name='covid',
                          target_func=epy.vaccinate_age, stream=stream,
                          age_target=(50, 65), coverage=0.6)
-
+    
+    # Import cases
+    #ImportCases(150, sim, 5)
+    #ImportCases(250, sim, 5)
 
     # Run model
+    tm = time.time()
     sim.run(stop_time=simulate_for, disease_random_seeds=[1323])
+    print(time.time() - tm)
 
+    #%%
+    plt.plot(sim.collector['S'], label='S')
+    plt.plot(sim.collector['E'], label='E')
+    plt.plot(np.sum([sim.collector['Sy'], sim.collector['A'], sim.collector['P']], axis=0),
+             label='I')
+    plt.plot(sim.collector['R'], label='R')
+    #plt.plot(sim.collector['H'], label='H')
+    #plt.plot(sim.collector['D'], label='D')
+    plt.xlabel('Days')
+    plt.ylabel('# of agents')
+    plt.legend()
+    plt.show()
 
 
 
