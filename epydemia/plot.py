@@ -8,7 +8,8 @@ def animate(fig, ax, graph, vertex_colors, graph_layout,
             writer='pillow', add_id=True,
             highlight_edge='red',
             plot_kwargs={},
-            animation_kwargs={}, saving_kwargs={}):
+            animation_kwargs={}, saving_kwargs={},
+            return_obj=False):
 
     def _update_graph(frame):
         for (i,j) in highlighted_edges:
@@ -44,6 +45,8 @@ def animate(fig, ax, graph, vertex_colors, graph_layout,
                                   frames, interval=interval,
                                   blit=blit, **animation_kwargs)
     ani.save(save_as, writer=writer, fps=fps, **saving_kwargs)
+    if return_obj:
+        return ani
 
 def plot_network(sim, ax, layer, vertices=None, **plot_kwargs):
     if vertices is not None:
