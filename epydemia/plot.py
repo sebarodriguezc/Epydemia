@@ -45,6 +45,8 @@ def animate(fig, ax, graph, vertex_colors, graph_layout,
                                   frames, interval=interval,
                                   blit=blit, **animation_kwargs)
     ani.save(save_as, writer=writer, fps=fps, **saving_kwargs)
+    if return_obj:
+        return ani
 
 def plot_network(sim, ax, layer, vertices=None, **plot_kwargs):
     if vertices is not None:
