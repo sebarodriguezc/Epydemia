@@ -8,7 +8,8 @@ def animate(fig, ax, graph, vertex_colors, graph_layout,
             writer='pillow', add_id=True,
             highlight_edge='red',
             plot_kwargs={},
-            animation_kwargs={}, saving_kwargs={}):
+            animation_kwargs={}, saving_kwargs={},
+            return_obj=False):
 
     def _update_graph(frame):
         for (i,j) in highlighted_edges:
